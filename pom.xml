@@ -1,0 +1,85 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.nfl.util</groupId>
+	<artifactId>groovy-mapper</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>groovy-mapper</name>
+
+	<properties>
+        <spring.version>3.1.1.RELEASE</spring.version>
+        <groovy.version>1.8.6</groovy.version>
+    </properties>
+
+	<dependencies>
+		<dependency>
+        	<groupId>org.codehaus.groovy</groupId>
+			<artifactId>groovy-all</artifactId>
+			<version>${groovy.version}</version>
+        </dependency>
+        <dependency>
+	        <groupId>commons-beanutils</groupId>
+	  		<artifactId>commons-beanutils</artifactId>
+	  		<version>1.8.3</version>
+        </dependency>
+        <dependency>
+	        <groupId>org.springframework</groupId>
+	  		<artifactId>spring-context</artifactId>
+	  		<version>${spring.version}</version>
+        </dependency>
+	</dependencies>
+	
+	
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-eclipse-plugin</artifactId>
+				<configuration>
+					<downloadSources>true</downloadSources>
+					<additionalProjectnatures>
+						<projectnature>
+							org.eclipse.jdt.groovy.core.groovyNature
+						</projectnature>
+					</additionalProjectnatures>
+					<sourceIncludes>
+						<sourceInclude>**/*.groovy</sourceInclude>
+					</sourceIncludes>
+				</configuration>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.codehaus.groovy</groupId>
+				<artifactId>groovy-eclipse-compiler</artifactId>
+				<version>2.6.0-01</version>
+				<extensions>true</extensions>
+				<dependencies>
+					<dependency>
+					  <groupId>org.codehaus.groovy</groupId>
+					  <artifactId>groovy-eclipse-batch</artifactId>
+					  <version>1.8.6-01</version>
+					</dependency>
+				</dependencies>
+			</plugin>
+
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+				  <compilerId>groovy-eclipse-compiler</compilerId>
+				  <verbose>true</verbose>
+				</configuration>
+				<dependencies>
+				  <dependency>
+					<groupId>org.codehaus.groovy</groupId>
+					<artifactId>groovy-eclipse-compiler</artifactId>
+					<version>2.6.0-01</version>
+				  </dependency>
+				</dependencies>
+			</plugin>	
+		</plugins>
+	</build>
+	
+</project>
