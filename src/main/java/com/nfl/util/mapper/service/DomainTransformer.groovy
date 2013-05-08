@@ -288,8 +288,12 @@ class DomainTransformer implements ApplicationContextAware {
 
     private  Object eval(Class toPropertyClass, Closure fromExpression, Object... from) {
         def rhs = safelyEvaluateClosure(fromExpression, from)
-        return toPropertyClass.isAnnotationPresent(MappedClass.class) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs
+        return (toPropertyClass.isAnnotationPresent(MappedClass.class) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs
     }
+	
+	private boolean isAlreadyProvided(Class toPropertyClass, Object rhs) {
+		return toPropertyClass.isAssignableFrom(rhs.getClass());
+	}
 
     private  Object safelyEvaluateClosure(Closure fromExpression, Object... from) {
         try {
