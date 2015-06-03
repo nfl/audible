@@ -19,19 +19,23 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * DomainTransformer uses Map<String, Function> to transform one pojo to another
+ */
+@SuppressWarnings("unused")
 @Component
 public class DomainTransformer implements ApplicationContextAware {
 
     public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list) throws Exception {
 
-        return list.stream().map(o -> doTransform(toClass, MappingType.FULL, o)).collect(Collectors.toList());
+        return list.parallelStream().map(o -> doTransform(toClass, MappingType.FULL, o)).collect(Collectors.toList());
 
     }
 
 
     public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
 
-        return list.stream().map(o -> doTransform(toClass, mappingType, o)).collect(Collectors.toList());
+        return list.parallelStream().map(o -> doTransform(toClass, mappingType, o)).collect(Collectors.toList());
     }
 
 
@@ -43,6 +47,7 @@ public class DomainTransformer implements ApplicationContextAware {
         return doTransform(toClass, MappingType.MIN, from);
     }
 
+    @SuppressWarnings("unchecked")
     private <To> To doTransform(final Class<To> toClass, MappingType mappingType, Object... from) {
 
         try {
@@ -72,8 +77,10 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
             assert mapping != null;
-            mapping.forEach((toPropertyName, fromExpression) ->
+            mapping.entrySet().parallelStream().forEach(entry ->
                     {
+                        String toPropertyName = entry.getKey();
+                        Function fromExpression = entry.getValue();
                         try {
 
                             Class toPropertyType = PropertyUtils.getPropertyType(to, toPropertyName);
@@ -93,12 +100,11 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
                                     MappingType overrideMappingTypeNested = null;
-                                    String customMappingNameNested = null;
+
 
                                     if (fromList instanceof CustomMappingObject) {
                                         CustomMappingObject cmo = (CustomMappingObject) fromList;
                                         overrideMappingTypeNested = cmo.getMappingType();
-                                        customMappingNameNested = cmo.getMappingName();
                                     }
 
 
@@ -107,11 +113,9 @@ public class DomainTransformer implements ApplicationContextAware {
                                     //Check to see if they are already providing toClass in the closure
                                     boolean isOverride = fromList != null && !fromList.isEmpty() && !typeForCollection.isAssignableFrom(fromList.iterator().next().getClass());
 
-                                    //boolean isOverride = fromList != null && !fromList.invokeMethod("isEmpty", new Object[0]) && !typeForCollection.isAssignableFrom(fromList.invokeMethod("iterator", new Object[0]).invokeMethod("next", new Object[0]).invokeMethod("getClass", new Object[0]));
-
 
                                     if (fromList == null || fromList.isEmpty()) {
-                                        //return null;
+                                        PropertyUtils.setMappedProperty(to, toPropertyName, null);
                                     } else if (isOverride && typeForCollection.isAnnotationPresent(MappedClass.class)) {
 
                                         Object toValue = transformList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
@@ -258,29 +262,29 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
 
-    private Map<String, Function> getMappingByType(Object mappingMethodsList, MappingType mappingType, Object mappingObject) throws Exception {
+    private Map<String, Function> getMappingByType(List<Method> mappingMethodsList, MappingType mappingType, Object mappingObject) throws Exception {
 
-        Map mapping;
+        Map<String, Function> mapping;
 
         if (MappingType.MIN.equals(mappingType)) {
-            mapping = getMappingFromMethods(MappingType.MIN, (List) mappingMethodsList, mappingObject);
+            mapping = getMappingFromMethods(MappingType.MIN, mappingMethodsList, mappingObject);
 
             if (mapping == null) {
-                return getMappingFromMethods(MappingType.FULL, (List) mappingMethodsList, mappingObject);
+                return getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
             } else {
                 return mapping;
             }
 
 
         } else {
-            mapping = getMappingFromMethods(MappingType.MIN, (List) mappingMethodsList, mappingObject);
+            mapping = getMappingFromMethods(MappingType.MIN, mappingMethodsList, mappingObject);
 
             if (mapping != null) {
-                mapping.putAll(getMappingFromMethods(MappingType.ADDITIONAL, (List) mappingMethodsList, mappingObject));
+                mapping.putAll(getMappingFromMethods(MappingType.ADDITIONAL, mappingMethodsList, mappingObject));
 
                 return mapping;
             } else {
-                return getMappingFromMethods(MappingType.FULL, (List) mappingMethodsList, mappingObject);
+                return getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
             }
 
         }
@@ -288,17 +292,19 @@ public class DomainTransformer implements ApplicationContextAware {
 
     }
 
+    @SuppressWarnings("unchecked")
     private Map<String, Function> getMappingFromMethods(MappingType type, List<Method> mappingMethodsList, Object mappingObject) throws Exception {
         for (Method method : mappingMethodsList) {
             if (type.equals(method.getAnnotation(Mapping.class).value())) {
-                return ((Map) (method.invoke(mappingObject, null)));
+                return ((Map<String, Function>) (method.invoke(mappingObject, (Object[]) null)));
             }
 
         }
 
-        return null;
+        return Collections.<String, Function>emptyMap();
     }
 
+    @SuppressWarnings("unchecked")
     private boolean isOriginalClassesMatch(Class[] fromOriginalClasses, Class[] methodOriginalClasses) {
         if (fromOriginalClasses.length != methodOriginalClasses.length) {
             return false;
@@ -317,13 +323,7 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
     private boolean isMappingNameMatch(String fromMappingName, String methodMappingName) {
-        if (fromMappingName == null) {
-            return true;
-        } else if (fromMappingName.equals(methodMappingName)) {
-            return true;
-        } else {
-            return false;
-        }
+        return fromMappingName == null || fromMappingName.equals(methodMappingName);
 
 
     }
@@ -333,10 +333,12 @@ public class DomainTransformer implements ApplicationContextAware {
         return (toPropertyClass.isAnnotationPresent(MappedClass.class) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs;
     }
 
+    @SuppressWarnings("unchecked")
     private boolean isAlreadyProvided(Class toPropertyClass, Object rhs) {
         return toPropertyClass.isAssignableFrom(rhs.getClass());
     }
 
+    @SuppressWarnings("unchecked")
     private Object safelyEvaluateClosure(Function fromExpression, Object... from) {
         try {
 
