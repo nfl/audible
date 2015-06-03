@@ -16,23 +16,10 @@ import java.util.function.Function;
 public class ToObjectMapping {
 
     @Mapping(value = MappingType.FULL, originalClasses = {FromObject.class})
-    public Map<String, Function> getMapping() {
-        Map<String, Function> map = new HashMap<>();
-        map.put("someOtherOne", createFunction("one"));
-        map.put("somethingElse", createFunction("nested.one"));
+    public Map<String, Function<FromObject, ?>> getMapping() {
+        Map<String, Function<FromObject, ?>> map = new HashMap<>();
+        map.put("someOtherOne", (FromObject o) -> o.getOne());
+        map.put("somethingElse", (FromObject o) -> o.getNested().getOne());
         return map;
-    }
-
-    private Function createFunction(String propertyName) {
-        return o -> getProperty(o, propertyName);
-    }
-
-    private Object getProperty(Object o, String propertyName) {
-
-        try {
-            return PropertyUtils.getProperty(o, propertyName);
-        } catch (Exception e) {
-            return null;
-        }
     }
 }
