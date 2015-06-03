@@ -280,7 +280,10 @@ public class DomainTransformer implements ApplicationContextAware {
             mapping = getMappingFromMethods(MappingType.MIN, mappingMethodsList, mappingObject);
 
             if (mapping != null) {
-                mapping.putAll(getMappingFromMethods(MappingType.ADDITIONAL, mappingMethodsList, mappingObject));
+                Map<String, Function> mappingFromMethods = getMappingFromMethods(MappingType.ADDITIONAL, mappingMethodsList, mappingObject);
+                if (mappingFromMethods != null) {
+                    mapping.putAll(mappingFromMethods);
+                }
 
                 return mapping;
             } else {
@@ -301,7 +304,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
         }
 
-        return Collections.<String, Function>emptyMap();
+        return null;
     }
 
     @SuppressWarnings("unchecked")
