@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @Component
 public class DomainTransformer implements ApplicationContextAware {
 
-    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list) throws Exception {
+    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list)  {
 
         return list.parallelStream().map(o -> doTransform(toClass, MappingType.FULL, o)).collect(Collectors.toList());
 
@@ -39,11 +39,11 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
 
-    public <To> To transform(Class<To> toClass, Object... from) throws Exception {
+    public <To> To transform(Class<To> toClass, Object... from) {
         return doTransform(toClass, MappingType.FULL, from);
     }
 
-    public <To> To transformMin(Class<To> toClass, Object... from) throws Exception {
+    public <To> To transformMin(Class<To> toClass, Object... from)  {
         return doTransform(toClass, MappingType.MIN, from);
     }
 
@@ -75,7 +75,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
             assert mapping != null;
-            mapping.entrySet().parallelStream().forEach(entry ->
+            mapping.entrySet().stream().forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
                         Function fromExpression = entry.getValue();
