@@ -94,7 +94,7 @@ public class DomainTransformer implements ApplicationContextAware {
                                     ParameterizedType pt = (ParameterizedType) type;
                                     Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
 
-                                    List fromList = (List) eval(toPropertyType, fromExpression, finalFrom);
+                                    List fromList = new ArrayList((Collection)eval(toPropertyType, fromExpression, finalFrom));
 
                                     MappingType overrideMappingTypeNested = null;
 
@@ -109,29 +109,29 @@ public class DomainTransformer implements ApplicationContextAware {
                                     boolean isOverride = fromList != null && !fromList.isEmpty() && !typeForCollection.isAssignableFrom(fromList.iterator().next().getClass());
 
                                     if (fromList == null || fromList.isEmpty()) {
-                                        PropertyUtils.setMappedProperty(to, toPropertyName, null);
+                                        PropertyUtils.setProperty(to, toPropertyName, null);
                                     } else if (isOverride && typeForCollection.isAnnotationPresent(MappedClass.class)) {
 
                                         Object toValue = transformList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
 
-                                        PropertyUtils.setMappedProperty(to, toPropertyName, toValue);
+                                        PropertyUtils.setProperty(to, toPropertyName, toValue);
 
 
                                     } else {
                                         if (toPropertyType.isAssignableFrom(fromList.getClass())) {
 
-                                            PropertyUtils.setMappedProperty(to, toPropertyName, fromList);
+                                            PropertyUtils.setProperty(to, toPropertyName, fromList);
 
                                         } else {
                                             if (List.class.isAssignableFrom(toPropertyType)) {
                                                 List list = new ArrayList();
                                                 list.addAll(fromList);
-                                                PropertyUtils.setMappedProperty(to, toPropertyName, list);
+                                                PropertyUtils.setProperty(to, toPropertyName, list);
 
                                             } else if (Set.class.isAssignableFrom(toPropertyType)) {
                                                 Set set = new HashSet();
                                                 set.addAll(fromList);
-                                                PropertyUtils.setMappedProperty(to, toPropertyName, set);
+                                                PropertyUtils.setProperty(to, toPropertyName, set);
                                             } else {
                                                 throw new Exception("Unable to find find property collection type on " + toPropertyType);
                                             }
