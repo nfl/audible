@@ -75,7 +75,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
             assert mapping != null;
-            mapping.entrySet().stream().forEach(entry ->
+            mapping.entrySet().parallelStream().forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
                         Function fromExpression = entry.getValue();
