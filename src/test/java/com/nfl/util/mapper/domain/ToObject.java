@@ -1,8 +1,5 @@
 package com.nfl.util.mapper.domain;
 
-import com.nfl.util.mapper.annotation.MappedClass;
-import com.nfl.util.mapper.annotation.MappingClass;
-
 /**
  * Created by chi.kim on 6/2/15.
  */
