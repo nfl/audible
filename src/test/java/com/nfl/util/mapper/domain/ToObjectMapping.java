@@ -2,7 +2,7 @@ package com.nfl.util.mapper.domain;
 
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
-import org.apache.commons.beanutils.PropertyUtils;
+import com.nfl.util.mapper.annotation.MappingClassOf;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -13,6 +13,7 @@ import java.util.function.Function;
  * Created by chi.kim on 6/2/15.
  */
 @Component
+@MappingClassOf(ToObject.class)
 public class ToObjectMapping {
 
     @Mapping(value = MappingType.FULL, originalClasses = {FromObject.class})

@@ -7,11 +7,11 @@ import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * @author Henri Shahrouz
- * @version 4/22/12 8:08 PM
+ * Created by chi.kim on 6/8/15.
  */
 @Retention(RUNTIME)
 @Target({ TYPE})
-public @interface MappedClass {
+public @interface MappingClassOf {
 
+    Class value();
 }

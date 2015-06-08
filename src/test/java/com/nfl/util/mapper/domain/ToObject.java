@@ -6,8 +6,6 @@ import com.nfl.util.mapper.annotation.MappingClass;
 /**
  * Created by chi.kim on 6/2/15.
  */
-@MappedClass
-@MappingClass("com.nfl.util.mapper.domain.ToObjectMapping")
 public class ToObject {
 
     private Integer someOtherOne;

@@ -3,21 +3,28 @@ package com.nfl.util.mapper.service;
 import com.nfl.util.mapper.CustomMappingObject;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.MultipleReturnObject;
-import com.nfl.util.mapper.annotation.MappedClass;
 import com.nfl.util.mapper.annotation.Mapping;
-import com.nfl.util.mapper.annotation.MappingClass;
+import com.nfl.util.mapper.annotation.MappingClassOf;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.*;
+import javax.annotation.PostConstruct;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 
 /**
  * DomainTransformer uses Map<String, Function> to transform one pojo to another
@@ -25,6 +32,13 @@ import java.util.stream.Collectors;
 @SuppressWarnings("unused")
 @Component
 public class DomainTransformer implements ApplicationContextAware {
+
+    private static final Log log = LogFactory.getLog(DomainTransformer.class);
+
+    private ApplicationContext applicationContext;
+
+    private Map<Class, Object> toClassToMapping = new HashMap<>();
+
 
     public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list)  {
 
@@ -75,7 +89,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
             assert mapping != null;
-            mapping.entrySet().parallelStream().forEach(entry ->
+            mapping.entrySet().stream().forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
                         Function fromExpression = entry.getValue();
@@ -110,7 +124,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
                                     if (fromList == null || fromList.isEmpty()) {
                                         PropertyUtils.setProperty(to, toPropertyName, null);
-                                    } else if (isOverride && typeForCollection.isAnnotationPresent(MappedClass.class)) {
+                                    } else if (isOverride && isMappingPresent(typeForCollection)) {
 
                                         Object toValue = transformList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
 
@@ -211,23 +225,22 @@ public class DomainTransformer implements ApplicationContextAware {
             mappingType = overrideMappingType;
         }
 
-        if (toClass.isAnnotationPresent(MappingClass.class)) {
-            MappingClass mappingClass = (MappingClass) toClass.getAnnotation(MappingClass.class);
 
-            String className = mappingClass.value();
 
-            Class mappingClassClass = Class.forName(className);
+        return getMappingFromMappingObject(toClass, mappingType, customMappingName, originalClasses);
 
-            return getMappingFromMappingObject(mappingClassClass, mappingType, customMappingName, originalClasses);
 
-        } else {
-            return null;
-        }
     }
 
-    private Map<String, Function> getMappingFromMappingObject(Class mappingClassClass, MappingType mappingType, final String mappingName, final Class... originalClasses) throws Exception {
+    private Map<String, Function> getMappingFromMappingObject(Class toClass, MappingType mappingType, final String mappingName, final Class... originalClasses) throws Exception {
 
-        Object mappingObject = applicationContext.getBean(mappingClassClass);
+        Object mappingObject = toClassToMapping.get(toClass);
+
+        if (mappingObject == null) {
+            throw new RuntimeException("No Mapping found for " + toClass);
+        }
+
+        Class mappingClassClass = mappingObject.getClass();
 
         Method[] mappingMethods = mappingClassClass.getMethods();
 
@@ -307,7 +320,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
     private Object eval(Class toPropertyClass, Function fromExpression, Object... from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (toPropertyClass.isAnnotationPresent(MappedClass.class) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs;
+        return (isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs;
     }
 
     @SuppressWarnings("unchecked")
@@ -352,12 +365,35 @@ public class DomainTransformer implements ApplicationContextAware {
 
     }
 
+    private boolean isMappingPresent(Class toClass) {
+        return toClassToMapping.containsKey(toClass);
+    }
+
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         this.applicationContext = applicationContext;
 
     }
 
-    private static final Log log = LogFactory.getLog(DomainTransformer.class);
-    private ApplicationContext applicationContext;
+    @PostConstruct
+    void loadClasses() throws Exception {
+
+        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
+        // Filter to include only classes that have a particular annotation.
+        provider.addIncludeFilter(new AnnotationTypeFilter(MappingClassOf.class));
+        // Find classes in the given package (or subpackages)
+        Set<BeanDefinition> beans = provider.findCandidateComponents("com.nfl");
+
+        for (BeanDefinition object : beans) {
+            Class mappingClass = Class.forName(object.getBeanClassName());
+            MappingClassOf mappingClassOf = (MappingClassOf) mappingClass.getAnnotation(MappingClassOf.class);
+            Class toClass = mappingClassOf.value();
+
+            toClassToMapping.put(toClass, applicationContext.getBean(mappingClass));
+
+        }
+
+    }
+
+
 }
