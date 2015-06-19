@@ -10,9 +10,9 @@
 	<name>pojo-mapper</name>
 	
 	<scm>
-        <connection>scm:git:git@git.dm.nfl.com:NFL/service-pojo-mapper</connection>
-        <developerConnection>scm:git:git@git.dm.nfl.com:NFL/service-pojo-mapper</developerConnection>
-        <url>scm:git:git@git.dm.nfl.com:NFL/service-pojo-mapper</url>
+        <connection>scm:git:git@github.dm.nfl.com:NFL/service-pojo-mapper</connection>
+        <developerConnection>scm:git:git@github.dm.nfl.com:NFL/service-pojo-mapper</developerConnection>
+        <url>scm:git:git@github.dm.nfl.com:NFL/service-pojo-mapper</url>
     </scm>
 
 	<properties>
