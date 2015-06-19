@@ -108,16 +108,23 @@ public class DomainTransformer implements ApplicationContextAware {
                                     ParameterizedType pt = (ParameterizedType) type;
                                     Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
 
-                                    List fromList = new ArrayList((Collection)eval(toPropertyType, fromExpression, finalFrom));
+                                    Object object = eval(toPropertyType, fromExpression, finalFrom);
+
+                                    List fromList = null;
 
                                     MappingType overrideMappingTypeNested = null;
 
-                                    if (fromList instanceof CustomMappingObject) {
-                                        CustomMappingObject cmo = (CustomMappingObject) fromList;
-                                        overrideMappingTypeNested = cmo.getMappingType();
-                                    }
+                                    if (object != null) {
+                                        if (object instanceof CustomMappingObject) {
+                                            CustomMappingObject cmo = (CustomMappingObject) object;
+                                            overrideMappingTypeNested = cmo.getMappingType();
+                                        } else {
 
-                                    fromList = (List) checkForCustomMappingTypeList(fromList);
+                                            fromList = new ArrayList((Collection) object);
+                                        }
+
+                                        fromList = (List) checkForCustomMappingTypeList(fromList);
+                                    }
 
                                     //Check to see if they are already providing toClass in the closure
                                     boolean isOverride = fromList != null && !fromList.isEmpty() && !typeForCollection.isAssignableFrom(fromList.iterator().next().getClass());
@@ -320,7 +327,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
     private Object eval(Class toPropertyClass, Function fromExpression, Object... from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs;
+        return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs;
     }
 
     @SuppressWarnings("unchecked")
