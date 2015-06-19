@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 
 /**
- * DomainTransformer uses Map<String, Function> to transform one pojo to another
+ * DomainTransformer uses Map of String, Function to transform one pojo to another
  */
 @SuppressWarnings("unused")
 @Component
