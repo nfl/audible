@@ -5,6 +5,7 @@ import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.MultipleReturnObject;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.MappingClassOf;
+import com.nfl.util.mapper.annotation.PostProcessor;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -180,11 +181,46 @@ public class DomainTransformer implements ApplicationContextAware {
                     }
             );
 
+            handlePostProcessor(to, toClass, from);
+
             return to;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
+    }
+
+    private void handlePostProcessor(Object to, Class toClass, Object [] from) throws Exception {
+        Object mappingObject = toClassToMapping.get(toClass);
+
+        Class mappingClassClass = mappingObject.getClass();
+
+        Method[] mappingMethods = mappingClassClass.getMethods();
+
+        List<Class> classesList = new ArrayList<>();
+        List<Object> objectList = new ArrayList<>();
+
+        classesList.add(toClass);
+        objectList.add(to);
+
+        for (Object o : from) {
+            classesList.add(o.getClass());
+            objectList.add(o);
+        }
+
+        Class[] argumentClasses = new Class[classesList.size()];
+        Object[] objectArray = new Object[objectList.size()];
+
+        final Class[] finalArgumentClasses = classesList.toArray(argumentClasses);
+        objectArray = objectList.toArray(objectArray);
+
+        List<Method> methodsList = Arrays.stream(mappingMethods).filter(method -> method.isAnnotationPresent(PostProcessor.class) && Arrays.equals(method.getParameterTypes(),finalArgumentClasses))
+                .collect(Collectors.toList());
+
+        for (Method method : methodsList) {
+            method.invoke(mappingObject, objectArray);
+        }
+
     }
 
     private Object[] checkForMultipleReturnObject(Object[] from) {
