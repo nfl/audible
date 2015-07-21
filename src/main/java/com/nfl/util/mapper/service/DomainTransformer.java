@@ -2,7 +2,7 @@ package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.CustomMappingObject;
 import com.nfl.util.mapper.MappingType;
-import com.nfl.util.mapper.MultipleReturnObject;
+import com.nfl.util.mapper.Tuple;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.MappingTo;
 import com.nfl.util.mapper.annotation.PostProcessor;
@@ -16,6 +16,10 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
+import rx.functions.Func1;
+import rx.functions.Func2;
+import rx.functions.Func3;
+import rx.functions.Function;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
@@ -23,7 +27,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -237,8 +240,8 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
     private Object[] checkForMultipleReturnObject(Object[] from) {
-        if (from.length == 1 && from[0] instanceof MultipleReturnObject) {
-            return ((MultipleReturnObject) from[0]).getObjects();
+        if (from.length == 1 && from[0] instanceof Tuple) {
+            return ((Tuple) from[0]).getObjects();
         } else {
             return from;
         }
@@ -416,7 +419,11 @@ public class DomainTransformer implements ApplicationContextAware {
 
             switch (from.length) {
                 case 1:
-                    return fromExpression.apply(from[0]);
+                    return ((Func1)fromExpression).call(from[0]);
+                case 2:
+                    return ((Func2)fromExpression).call(from[0], from[1]);
+                case 3:
+                    return ((Func3)fromExpression).call(from[0], from[1], from[2]);
                 default:
                     return null;
             }

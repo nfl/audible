@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+import rx.functions.Func1;
 
 /**
  * Created by chi.kim on 6/2/15.
@@ -25,9 +25,9 @@ public class NestedObjectMapping {
 //    }
 
     @Mapping(value = MappingType.FULL, originalClasses = {Nested.class})
-    public Map<String, Function<Nested, ?>> getMapping() {
-        Map<String, Function<Nested, ?>> map = new HashMap<>();
-        map.put("someOtherOne", (Nested o) -> o.getOne());
+    public Map<String, Func1<Nested, ?>> getMapping() {
+        Map<String, Func1<Nested, ?>> map = new HashMap<>();
+        map.put("toone", (Nested o) -> o.getOne());
         return map;
     }
 }

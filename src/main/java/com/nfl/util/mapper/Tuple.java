@@ -1,6 +1,9 @@
 package com.nfl.util.mapper;
 
-public class MultipleReturnObject {
+/**
+ * Used for passing mulitple arguments on transformList or returning multiple objects.
+ */
+public class Tuple {
     public Object[] getObjects() {
         return objects;
     }

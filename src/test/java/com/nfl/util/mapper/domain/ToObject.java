@@ -7,7 +7,7 @@ public class ToObject {
 
     private Integer someOtherOne;
 
-    private Integer somethingElse;
+    private String somethingElse;
 
     private Integer auto;
 
@@ -25,11 +25,11 @@ public class ToObject {
         this.someOtherOne = someOtherOne;
     }
 
-    public Integer getSomethingElse() {
+    public String getSomethingElse() {
         return somethingElse;
     }
 
-    public void setSomethingElse(Integer somethingElse) {
+    public void setSomethingElse(String somethingElse) {
         this.somethingElse = somethingElse;
     }
 
