@@ -4,7 +4,7 @@ import com.nfl.util.mapper.CustomMappingObject;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.MultipleReturnObject;
 import com.nfl.util.mapper.annotation.Mapping;
-import com.nfl.util.mapper.annotation.MappingForDestinationClass;
+import com.nfl.util.mapper.annotation.MappingTo;
 import com.nfl.util.mapper.annotation.PostProcessor;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
@@ -462,14 +462,14 @@ public class DomainTransformer implements ApplicationContextAware {
 
         ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
         // Filter to include only classes that have a particular annotation.
-        provider.addIncludeFilter(new AnnotationTypeFilter(MappingForDestinationClass.class));
+        provider.addIncludeFilter(new AnnotationTypeFilter(MappingTo.class));
         // Find classes in the given package (or subpackages)
         Set<BeanDefinition> beans = provider.findCandidateComponents("com.nfl");
 
         for (BeanDefinition object : beans) {
             Class mappingClass = Class.forName(object.getBeanClassName());
-            MappingForDestinationClass mappingForDestinationClass = (MappingForDestinationClass) mappingClass.getAnnotation(MappingForDestinationClass.class);
-            Class toClass = mappingForDestinationClass.value();
+            MappingTo mappingTo = (MappingTo) mappingClass.getAnnotation(MappingTo.class);
+            Class toClass = mappingTo.value();
 
             toClassToMapping.put(toClass, applicationContext.getBean(mappingClass));
 
