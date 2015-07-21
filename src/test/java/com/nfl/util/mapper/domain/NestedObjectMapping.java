@@ -13,8 +13,8 @@ import java.util.function.Function;
  * Created by chi.kim on 6/2/15.
  */
 @Component
-@MappingForDestinationClass(ToObject.class)
-public class ToObjectMapping {
+@MappingForDestinationClass(ToNested.class)
+public class NestedObjectMapping {
 
 //    @Mapping(value = MappingType.FULL, originalClasses = {FromObject.class})
 //    public Map<String, Function<FromObject, ?>> getMapping() {
@@ -24,12 +24,10 @@ public class ToObjectMapping {
 //        return map;
 //    }
 
-    @Mapping(value = MappingType.FULL_AUTO, originalClasses = {FromObject.class})
-    public Map<String, Function<FromObject, ?>> getMapping() {
-        Map<String, Function<FromObject, ?>> map = new HashMap<>();
-        map.put("someOtherOne", (FromObject o) -> o.getOne());
-        map.put("somethingElse", (FromObject o) -> o.getNested().getOne());
-        map.put("nested", (FromObject o)-> o.getNested());
+    @Mapping(value = MappingType.FULL, originalClasses = {Nested.class})
+    public Map<String, Function<Nested, ?>> getMapping() {
+        Map<String, Function<Nested, ?>> map = new HashMap<>();
+        map.put("someOtherOne", (Nested o) -> o.getOne());
         return map;
     }
 }

@@ -4,7 +4,7 @@ import com.nfl.util.mapper.CustomMappingObject;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.MultipleReturnObject;
 import com.nfl.util.mapper.annotation.Mapping;
-import com.nfl.util.mapper.annotation.MappingClassOf;
+import com.nfl.util.mapper.annotation.MappingForDestinationClass;
 import com.nfl.util.mapper.annotation.PostProcessor;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
@@ -39,6 +39,8 @@ public class DomainTransformer implements ApplicationContextAware {
     private ApplicationContext applicationContext;
 
     private Map<Class, Object> toClassToMapping = new HashMap<>();
+
+    private TypeSafeCopy typeSafeCopy = new TypeSafeCopy();
 
 
     public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list)  {
@@ -84,13 +86,23 @@ public class DomainTransformer implements ApplicationContextAware {
             from = checkForCustomMappingType(from);
             from = checkForMultipleReturnObject(from);
 
-            Map<String, Function> mapping = getMapping(toClass, mappingType, overrideMappingType, customMappingName, from);
+            MappingFunction mappingFunction = getMapping(toClass, mappingType, overrideMappingType, customMappingName, from);
+
+            Map<String, Function> mapping = mappingFunction.mapping;
+
+            if (mappingFunction.mappingType == MappingType.FULL_AUTO) {
+                if (from.length == 1) {
+                    typeSafeCopy.copyProperties(to, from[0]);
+                } else {
+                    log.warn("Unable to auto copy properties to " + toClass.getName() + ". FULL_AUTO mappingType can only be used when source has only 1 parameter");
+                }
+            }
 
             final Object[] finalFrom = from;
 
 
             assert mapping != null;
-            mapping.entrySet().stream().forEach(entry ->
+            mapping.entrySet().parallelStream().forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
                         Function fromExpression = entry.getValue();
@@ -183,6 +195,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
             handlePostProcessor(to, toClass, from);
 
+
             return to;
         } catch (Exception e) {
             e.printStackTrace();
@@ -252,7 +265,7 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
 
-    private Map<String, Function> getMapping(Class toClass, MappingType mappingType, MappingType overrideMappingType, String customMappingName, Object... from) throws Exception {
+    private MappingFunction getMapping(Class toClass, MappingType mappingType, MappingType overrideMappingType, String customMappingName, Object... from) throws Exception {
 
         List<Class> classesList = new ArrayList<>();
 
@@ -275,7 +288,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
     }
 
-    private Map<String, Function> getMappingFromMappingObject(Class toClass, MappingType mappingType, final String mappingName, final Class... originalClasses) throws Exception {
+    private MappingFunction getMappingFromMappingObject(Class toClass, MappingType mappingType, final String mappingName, final Class... originalClasses) throws Exception {
 
         Object mappingObject = toClassToMapping.get(toClass);
 
@@ -300,7 +313,9 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
 
-    private Map<String, Function> getMappingByType(List<Method> mappingMethodsList, MappingType mappingType, Object mappingObject) throws Exception {
+    private MappingFunction getMappingByType(List<Method> mappingMethodsList, MappingType mappingType, Object mappingObject) throws Exception {
+
+        MappingFunction mappingFunction = new MappingFunction();
 
         Map<String, Function> mapping;
 
@@ -308,9 +323,18 @@ public class DomainTransformer implements ApplicationContextAware {
             mapping = getMappingFromMethods(MappingType.MIN, mappingMethodsList, mappingObject);
 
             if (mapping == null) {
-                return getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
+                Map<String, Function> fullMapping = getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
+                if (fullMapping == null) {
+                    mappingFunction.mappingType = MappingType.FULL_AUTO;
+                    mappingFunction.mapping = getMappingFromMethods(MappingType.FULL_AUTO, mappingMethodsList, mappingObject);
+                } else {
+                    mappingFunction.mappingType = MappingType.FULL;
+                    mappingFunction.mapping = fullMapping;
+                }
+
             } else {
-                return mapping;
+                mappingFunction.mappingType = MappingType.MIN;
+                mappingFunction.mapping = mapping;
             }
 
         } else {
@@ -322,12 +346,27 @@ public class DomainTransformer implements ApplicationContextAware {
                     mapping.putAll(mappingFromMethods);
                 }
 
-                return mapping;
+                mappingFunction.mappingType = MappingType.FULL;
+                mappingFunction.mapping = mapping;
             } else {
-                return getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
+                Map<String, Function> fullMapping = getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
+                if (fullMapping == null) {
+                    mappingFunction.mappingType = MappingType.FULL_AUTO;
+                    mappingFunction.mapping = getMappingFromMethods(MappingType.FULL_AUTO, mappingMethodsList, mappingObject);
+                } else {
+                    mappingFunction.mappingType = MappingType.FULL;
+                    mappingFunction.mapping = fullMapping;
+                }
             }
 
         }
+
+        return mappingFunction;
+    }
+
+    private class MappingFunction {
+        MappingType mappingType;
+        Map<String, Function> mapping;
     }
 
     @SuppressWarnings("unchecked")
@@ -423,14 +462,14 @@ public class DomainTransformer implements ApplicationContextAware {
 
         ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
         // Filter to include only classes that have a particular annotation.
-        provider.addIncludeFilter(new AnnotationTypeFilter(MappingClassOf.class));
+        provider.addIncludeFilter(new AnnotationTypeFilter(MappingForDestinationClass.class));
         // Find classes in the given package (or subpackages)
         Set<BeanDefinition> beans = provider.findCandidateComponents("com.nfl");
 
         for (BeanDefinition object : beans) {
             Class mappingClass = Class.forName(object.getBeanClassName());
-            MappingClassOf mappingClassOf = (MappingClassOf) mappingClass.getAnnotation(MappingClassOf.class);
-            Class toClass = mappingClassOf.value();
+            MappingForDestinationClass mappingForDestinationClass = (MappingForDestinationClass) mappingClass.getAnnotation(MappingForDestinationClass.class);
+            Class toClass = mappingForDestinationClass.value();
 
             toClassToMapping.put(toClass, applicationContext.getBean(mappingClass));
 

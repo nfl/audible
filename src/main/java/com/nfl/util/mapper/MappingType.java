@@ -4,6 +4,7 @@ public enum MappingType {
 	
 	MIN,
 	ADDITIONAL,
-	FULL
+	FULL,
+	FULL_AUTO;
 
 }
