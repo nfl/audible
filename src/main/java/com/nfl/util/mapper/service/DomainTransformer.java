@@ -28,6 +28,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 /**
@@ -90,9 +91,7 @@ public class DomainTransformer implements ApplicationContextAware {
             from = checkForMultipleReturnObject(from);
 
             MappingFunction mappingFunction = getMapping(toClass, mappingType, overrideMappingType, customMappingName, from);
-
             Map<String, Function> mapping = mappingFunction.mapping;
-
             if (mappingFunction.mappingType == MappingType.FULL_AUTO) {
                 if (from.length == 1) {
                     typeSafeCopy.copyProperties(to, from[0]);
@@ -105,7 +104,10 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
             assert mapping != null;
-            mapping.entrySet().parallelStream().forEach(entry ->
+
+            boolean parallel = mappingFunction.parallel;
+
+            (parallel ? mapping.entrySet().parallelStream() :mapping.entrySet().stream()).forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
                         Function fromExpression = entry.getValue();
@@ -309,8 +311,9 @@ public class DomainTransformer implements ApplicationContextAware {
         if (mappingMethodsList.size() == 0) {
             throw new RuntimeException("No Mapping Found from " + mappingClassClass);
         } else {
-
-            return getMappingByType(mappingMethodsList, mappingType, mappingObject);
+            MappingFunction mapping = getMappingByType(mappingMethodsList, mappingType, mappingObject);
+            mapping.parallel = mappingMethodsList.stream().allMatch(method -> method.getAnnotation(Mapping.class).parallel());
+            return mapping;
         }
 
     }
@@ -370,6 +373,7 @@ public class DomainTransformer implements ApplicationContextAware {
     private class MappingFunction {
         MappingType mappingType;
         Map<String, Function> mapping;
+        boolean parallel;
     }
 
     @SuppressWarnings("unchecked")

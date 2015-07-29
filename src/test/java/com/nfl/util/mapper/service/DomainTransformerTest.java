@@ -3,6 +3,8 @@ package com.nfl.util.mapper.service;
 import com.nfl.util.mapper.ApplicationTestConfig;
 import com.nfl.util.mapper.Tuple;
 import com.nfl.util.mapper.domain.FromObject;
+import com.nfl.util.mapper.domain.Student1;
+import com.nfl.util.mapper.domain.Student2;
 import com.nfl.util.mapper.domain.ToObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -30,6 +32,16 @@ public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
         ToObject to = dt.transform(ToObject.class, from, "a");
 
         Assert.assertEquals(to.getSomeOtherOne(), from.getOne());
+    }
+
+    public void testStudent() throws Exception {
+        Student1 s1 = new Student1();
+        Student2 s2 = dt.transform(Student2.class, s1);
+
+        System.out.println(s2.getFirstName());
+        System.out.println(s2.getLastName());
+        System.out.println(s2.getNums().getAge());
+        System.out.println(s2.getNums().getGpa());
     }
 
     public void testDomainTranformerList() throws Exception {

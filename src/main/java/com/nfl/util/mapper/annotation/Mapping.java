@@ -19,4 +19,6 @@ public @interface Mapping {
 	
 	Class [] originalClasses() default {Object.class};
 
+	boolean parallel() default true;
+
 }
