@@ -49,27 +49,43 @@ public class DomainTransformer implements ApplicationContextAware {
 
     public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list)  {
 
-        return list.parallelStream().map(o -> doTransform(toClass, MappingType.FULL, o)).collect(Collectors.toList());
-
+        return this.transformList(toClass, list, MappingType.FULL, "");
     }
 
 
     public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
 
-        return list.parallelStream().map(o -> doTransform(toClass, mappingType, o)).collect(Collectors.toList());
+        return this.transformList(toClass, list, mappingType, "");
+    }
+
+    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, String mappingName) {
+        return this.transformList(toClass, list, MappingType.FULL, mappingName);
+    }
+
+    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
+        return list.parallelStream().map(o -> doTransform(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
     }
 
 
     public <To> To transform(Class<To> toClass, Object... from) {
-        return doTransform(toClass, MappingType.FULL, from);
+        return this.transformWithMappingNameandMappingType(toClass, "", MappingType.FULL, from);
     }
 
-    public <To> To transformMin(Class<To> toClass, Object... from)  {
-        return doTransform(toClass, MappingType.MIN, from);
+    public <To> To transformWithMappingName(Class<To> toClass, String mappingName, Object... from) {
+        return this.transformWithMappingNameandMappingType(toClass, mappingName, MappingType.FULL, from);
     }
+
+    public <To> To transformWithMappingType(Class<To> toClass, MappingType mappingType, Object... from) {
+        return this.transformWithMappingNameandMappingType(toClass, "", mappingType, from);
+    }
+
+    public <To> To transformWithMappingNameandMappingType(Class<To> toClass, String mappingName, MappingType mappingType, Object... from) {
+        return doTransform(toClass, mappingType, mappingName, from);
+    }
+
 
     @SuppressWarnings("unchecked")
-    private <To> To doTransform(final Class<To> toClass, MappingType mappingType, Object... from) {
+    private <To> To doTransform(final Class<To> toClass, MappingType mappingType, String mappingName, Object... from) {
 
         try {
 
@@ -79,7 +95,7 @@ public class DomainTransformer implements ApplicationContextAware {
             final To to = toClass.newInstance();
 
             MappingType overrideMappingType = null;
-            String customMappingName = null;
+            String customMappingName = mappingName;
 
             if (from[0] instanceof CustomMappingObject) {
                 CustomMappingObject cmo = (CustomMappingObject) from[0];
@@ -409,7 +425,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
     private Object eval(Class toPropertyClass, Function fromExpression, Object... from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, rhs) : rhs;
+        return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
     }
 
     @SuppressWarnings("unchecked")

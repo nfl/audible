@@ -12,7 +12,7 @@ import com.nfl.util.mapper.MappingType;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface Mapping {
-	
+
 	MappingType value() default MappingType.FULL;
 	
 	String name() default "";

@@ -1,6 +1,7 @@
 package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.ApplicationTestConfig;
+import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.Tuple;
 import com.nfl.util.mapper.domain.FromObject;
 import com.nfl.util.mapper.domain.Student1;
@@ -34,14 +35,39 @@ public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
         Assert.assertEquals(to.getSomeOtherOne(), from.getOne());
     }
 
-    public void testStudent() throws Exception {
+    public void testNamedMapping() throws Exception {
         Student1 s1 = new Student1();
         Student2 s2 = dt.transform(Student2.class, s1);
+        Assert.assertEquals(s1.getName(), s2.getFirstName() + " " + s2.getLastName());
+        Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
+        Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
 
-        System.out.println(s2.getFirstName());
-        System.out.println(s2.getLastName());
-        System.out.println(s2.getNums().getAge());
-        System.out.println(s2.getNums().getGpa());
+        s2 = dt.transformWithMappingName(Student2.class, "reverse", s1);
+        Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
+        Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
+        Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
+    }
+
+    public void testNamedListMapping() throws Exception {
+        List<Student1> s1List = new ArrayList<>();
+        Student1 s1 = new Student1();
+        s1.setName("Joe Montana");
+        s1.setAge(25);
+        s1.setGpa(2.3);
+
+        s1List.add(s1);
+        s1List.add(s1);
+        s1List.add(s1);
+        s1List.add(s1);
+        s1List.add(s1);
+
+        List<Student2> s2List = dt.transformList(Student2.class, s1List, "reverse");
+
+        s2List.parallelStream().forEach(s2 -> {
+            Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
+            Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
+            Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
+        });
     }
 
     public void testDomainTranformerList() throws Exception {
