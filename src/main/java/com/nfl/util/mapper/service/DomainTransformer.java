@@ -42,7 +42,7 @@ public class DomainTransformer implements ApplicationContextAware {
     private TypeSafeCopy typeSafeCopy = new TypeSafeCopy();
 
 
-    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list)  {
+    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list) {
 
         return this.transformList(toClass, list, MappingType.FULL, "");
     }
@@ -75,7 +75,7 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
     public <From, To> To transform(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
-        return this.doTransform(toClass,mappingType, mappingName, from);
+        return this.doTransform(toClass, mappingType, mappingName, from);
     }
 
 
@@ -97,8 +97,6 @@ public class DomainTransformer implements ApplicationContextAware {
                 customMappingName = cmo.getMappingName();
             }
 
-            //from = checkForCustomMappingType(from);
-            //from = checkForMultipleReturnObject(from);
 
             MappingFunction mappingFunction = getMapping(toClass, mappingType, overrideMappingType, customMappingName, from);
             Map<String, Function> mapping = mappingFunction.mapping;
@@ -113,10 +111,10 @@ public class DomainTransformer implements ApplicationContextAware {
 
             boolean parallel = mappingFunction.parallel;
 
-            (parallel ? mapping.entrySet().parallelStream() :mapping.entrySet().stream()).forEach(entry ->
+            (parallel ? mapping.entrySet().parallelStream() : mapping.entrySet().stream()).forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
-                        Function fromExpression = entry.getValue();
+                        Function fromFunction = entry.getValue();
                         try {
 
                             Class toPropertyType = PropertyUtils.getPropertyType(to, toPropertyName);
@@ -124,75 +122,11 @@ public class DomainTransformer implements ApplicationContextAware {
                             //If the field is collection
                             if (Collection.class.isAssignableFrom(toPropertyType)) {
 
-                                Field field = toClass.getDeclaredField(toPropertyName);
-
-                                Type type = field.getGenericType();
-
-                                if (type instanceof ParameterizedType) {
-                                    ParameterizedType pt = (ParameterizedType) type;
-                                    Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
-
-                                    Object object = eval(toPropertyType, fromExpression, finalFrom);
-
-                                    List fromList = null;
-
-                                    MappingType overrideMappingTypeNested = null;
-
-                                    if (object != null) {
-                                        if (object instanceof CustomMappingObject) {
-                                            CustomMappingObject cmo = (CustomMappingObject) object;
-                                            overrideMappingTypeNested = cmo.getMappingType();
-                                        } else {
-
-                                            fromList = new ArrayList((Collection) object);
-                                        }
-
-                                        fromList = (List) checkForCustomMappingTypeList(fromList);
-                                    }
-
-                                    //Check to see if they are already providing toClass in the closure
-                                    boolean isOverride = fromList != null && !fromList.isEmpty() && !typeForCollection.isAssignableFrom(fromList.iterator().next().getClass());
-
-                                    if (fromList == null || fromList.isEmpty()) {
-                                        PropertyUtils.setProperty(to, toPropertyName, null);
-                                    } else if (isOverride && isMappingPresent(typeForCollection)) {
-
-                                        Object toValue = transformList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
-
-                                        PropertyUtils.setProperty(to, toPropertyName, toValue);
-
-
-                                    } else {
-                                        if (toPropertyType.isAssignableFrom(fromList.getClass())) {
-
-                                            PropertyUtils.setProperty(to, toPropertyName, fromList);
-
-                                        } else {
-                                            if (List.class.isAssignableFrom(toPropertyType)) {
-                                                List list = new ArrayList();
-                                                list.addAll(fromList);
-                                                PropertyUtils.setProperty(to, toPropertyName, list);
-
-                                            } else if (Set.class.isAssignableFrom(toPropertyType)) {
-                                                Set set = new HashSet();
-                                                set.addAll(fromList);
-                                                PropertyUtils.setProperty(to, toPropertyName, set);
-                                            } else {
-                                                throw new Exception("Unable to find find property collection type on " + toPropertyType);
-                                            }
-
-
-                                        }
-
-
-                                    }
-
-
-                                }
+                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName);
 
                             } else {
 
-                                Object value = eval(toPropertyType, fromExpression, finalFrom);
+                                Object value = eval(toPropertyType, fromFunction, finalFrom);
 
                                 PropertyUtils.setNestedProperty(to, toPropertyName, value);
                             }
@@ -211,6 +145,75 @@ public class DomainTransformer implements ApplicationContextAware {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName) throws Exception {
+
+        Field field = toClass.getDeclaredField(toPropertyName);
+
+        Type type = field.getGenericType();
+
+        if (type instanceof ParameterizedType) {
+            ParameterizedType pt = (ParameterizedType) type;
+            Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
+
+            Object object = eval(toPropertyType, fromFunction, finalFrom);
+
+            List fromList = null;
+
+            MappingType overrideMappingTypeNested = null;
+
+            if (object != null) {
+                if (object instanceof CustomMappingObject) {
+                    CustomMappingObject cmo = (CustomMappingObject) object;
+                    overrideMappingTypeNested = cmo.getMappingType();
+                    fromList = new ArrayList((Collection) cmo.getObject());
+                } else {
+
+                    fromList = new ArrayList((Collection) object);
+                }
+            }
+
+            //Check to see if they are already providing toClass in the closure
+            boolean isOverride = fromList != null && !fromList.isEmpty() && !typeForCollection.isAssignableFrom(fromList.iterator().next().getClass());
+
+
+            if (fromList == null || fromList.isEmpty()) { //Set null if empty
+                PropertyUtils.setProperty(to, toPropertyName, null);
+            } else if (isOverride && isMappingPresent(typeForCollection)) { //Recursively call
+
+                Object toValue = transformList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+
+                PropertyUtils.setProperty(to, toPropertyName, toValue);
+
+
+            } else { //Already provided by the fromList
+                if (toPropertyType.isAssignableFrom(fromList.getClass())) { //Collection type is assignable
+
+                    PropertyUtils.setProperty(to, toPropertyName, fromList);
+
+                } else { //Explicit collection type
+                    if (List.class.isAssignableFrom(toPropertyType)) {
+                        List list = new ArrayList();
+                        list.addAll(fromList);
+                        PropertyUtils.setProperty(to, toPropertyName, list);
+
+                    } else if (Set.class.isAssignableFrom(toPropertyType)) {
+                        Set set = new HashSet();
+                        set.addAll(fromList);
+                        PropertyUtils.setProperty(to, toPropertyName, set);
+                    } else {
+                        throw new Exception("Unable to find find property collection type on " + toPropertyType);
+                    }
+
+
+                }
+
+
+            }
+
+
         }
     }
 
@@ -236,33 +239,13 @@ public class DomainTransformer implements ApplicationContextAware {
         final Class[] finalArgumentClasses = classesList.toArray(argumentClasses);
         objectArray = objectList.toArray(objectArray);
 
-        List<Method> methodsList = Arrays.stream(mappingMethods).filter(method -> method.isAnnotationPresent(PostProcessor.class) && Arrays.equals(method.getParameterTypes(),finalArgumentClasses))
+        List<Method> methodsList = Arrays.stream(mappingMethods).filter(method -> method.isAnnotationPresent(PostProcessor.class) && Arrays.equals(method.getParameterTypes(), finalArgumentClasses))
                 .collect(Collectors.toList());
 
         for (Method method : methodsList) {
             method.invoke(mappingObject, objectArray);
         }
 
-    }
-
-
-    private Object checkForCustomMappingTypeList(Object fromList) {
-        if (fromList instanceof CustomMappingObject) {
-            return ((CustomMappingObject) fromList).getObject();
-
-        } else {
-            return fromList;
-        }
-    }
-
-    private Object checkForCustomMappingType(Object from) {
-        if (from instanceof CustomMappingObject) {
-
-            return ((CustomMappingObject) from).getObject();
-
-        } else {
-            return from;
-        }
     }
 
 
@@ -273,7 +256,6 @@ public class DomainTransformer implements ApplicationContextAware {
         if (overrideMappingType != null) {
             mappingType = overrideMappingType;
         }
-
 
 
         return getMappingFromMappingObject(toClass, mappingType, customMappingName, originalClass);
@@ -294,7 +276,7 @@ public class DomainTransformer implements ApplicationContextAware {
         Method[] mappingMethods = mappingClassClass.getMethods();
 
         List<Method> mappingMethodsList = Arrays.stream(mappingMethods).filter(method ->
-                        method.isAnnotationPresent(Mapping.class)
+                method.isAnnotationPresent(Mapping.class)
                         && method.getAnnotation(Mapping.class).originalClass().isAssignableFrom(originalClass)
                         && (mappingName == null || mappingName.equals(method.getAnnotation(Mapping.class).name())))
                 .collect(Collectors.toList());
