@@ -1,4 +1,5 @@
-package com.nfl.util.mapper.domain;
+package com.nfl.util.mapper.domain.dummy;
+
 
 /**
  * Created by jackson.brodeur on 7/27/15.
@@ -23,5 +24,9 @@ public class Numbers {
 
     public void setGpa(Double gpa) {
         this.gpa = gpa;
+    }
+
+    public String toString() {
+        return "[age: " + age + ", gpa: " + gpa + "]";
     }
 }

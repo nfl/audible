@@ -2,7 +2,6 @@ package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.CustomMappingObject;
 import com.nfl.util.mapper.MappingType;
-import com.nfl.util.mapper.Tuple;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.MappingTo;
 import com.nfl.util.mapper.annotation.PostProcessor;
@@ -16,10 +15,6 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
-import rx.functions.Func1;
-import rx.functions.Func2;
-import rx.functions.Func3;
-import rx.functions.Function;
 
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
@@ -27,8 +22,8 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 /**
@@ -67,56 +62,51 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
 
-    public <To> To transform(Class<To> toClass, Object... from) {
-        return this.transformWithMappingNameandMappingType(toClass, "", MappingType.FULL, from);
+    public <From, To> To transform(Class<To> toClass, From from) {
+        return this.transform(toClass, from, "", MappingType.FULL);
     }
 
-    public <To> To transformWithMappingName(Class<To> toClass, String mappingName, Object... from) {
-        return this.transformWithMappingNameandMappingType(toClass, mappingName, MappingType.FULL, from);
+    public <From, To> To transform(Class<To> toClass, From from, MappingType mappingType) {
+        return this.transform(toClass, from, "", mappingType);
     }
 
-    public <To> To transformWithMappingType(Class<To> toClass, MappingType mappingType, Object... from) {
-        return this.transformWithMappingNameandMappingType(toClass, "", mappingType, from);
+    public <From, To> To transform(Class<To> toClass, From from, String mappingName) {
+        return this.transform(toClass, from, mappingName, MappingType.FULL);
     }
 
-    public <To> To transformWithMappingNameandMappingType(Class<To> toClass, String mappingName, MappingType mappingType, Object... from) {
-        return doTransform(toClass, mappingType, mappingName, from);
+    public <From, To> To transform(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
+        return this.doTransform(toClass,mappingType, mappingName, from);
     }
 
 
     @SuppressWarnings("unchecked")
-    private <To> To doTransform(final Class<To> toClass, MappingType mappingType, String mappingName, Object... from) {
+    private <From, To> To doTransform(final Class<To> toClass, MappingType mappingType, String mappingName, From from) {//Object... from) {
 
         try {
 
-            if (isNull(from))
-                return null;
+            if (from == null) return null;
 
             final To to = toClass.newInstance();
 
             MappingType overrideMappingType = null;
             String customMappingName = mappingName;
 
-            if (from[0] instanceof CustomMappingObject) {
-                CustomMappingObject cmo = (CustomMappingObject) from[0];
+            if (from instanceof CustomMappingObject) {
+                CustomMappingObject cmo = (CustomMappingObject) from;
                 overrideMappingType = cmo.getMappingType();
                 customMappingName = cmo.getMappingName();
             }
 
-            from = checkForCustomMappingType(from);
-            from = checkForMultipleReturnObject(from);
+            //from = checkForCustomMappingType(from);
+            //from = checkForMultipleReturnObject(from);
 
             MappingFunction mappingFunction = getMapping(toClass, mappingType, overrideMappingType, customMappingName, from);
             Map<String, Function> mapping = mappingFunction.mapping;
             if (mappingFunction.mappingType == MappingType.FULL_AUTO) {
-                if (from.length == 1) {
-                    typeSafeCopy.copyProperties(to, from[0]);
-                } else {
-                    log.warn("Unable to auto copy properties to " + toClass.getName() + ". FULL_AUTO mappingType can only be used when source has only 1 parameter");
-                }
+                typeSafeCopy.copyProperties(to, from);
             }
 
-            final Object[] finalFrom = from;
+            final Object finalFrom = from;
 
 
             assert mapping != null;
@@ -224,7 +214,7 @@ public class DomainTransformer implements ApplicationContextAware {
         }
     }
 
-    private void handlePostProcessor(Object to, Class toClass, Object [] from) throws Exception {
+    private void handlePostProcessor(Object to, Class toClass, Object from) throws Exception {
         Object mappingObject = toClassToMapping.get(toClass);
 
         Class mappingClassClass = mappingObject.getClass();
@@ -237,10 +227,8 @@ public class DomainTransformer implements ApplicationContextAware {
         classesList.add(toClass);
         objectList.add(to);
 
-        for (Object o : from) {
-            classesList.add(o.getClass());
-            objectList.add(o);
-        }
+        classesList.add(from.getClass());
+        objectList.add(from);
 
         Class[] argumentClasses = new Class[classesList.size()];
         Object[] objectArray = new Object[objectList.size()];
@@ -257,14 +245,6 @@ public class DomainTransformer implements ApplicationContextAware {
 
     }
 
-    private Object[] checkForMultipleReturnObject(Object[] from) {
-        if (from.length == 1 && from[0] instanceof Tuple) {
-            return ((Tuple) from[0]).getObjects();
-        } else {
-            return from;
-        }
-    }
-
 
     private Object checkForCustomMappingTypeList(Object fromList) {
         if (fromList instanceof CustomMappingObject) {
@@ -275,10 +255,10 @@ public class DomainTransformer implements ApplicationContextAware {
         }
     }
 
-    private Object[] checkForCustomMappingType(Object[] from) {
-        if (from.length == 1 && from[0] instanceof CustomMappingObject) {
+    private Object checkForCustomMappingType(Object from) {
+        if (from instanceof CustomMappingObject) {
 
-            return new Object[]{((CustomMappingObject) from[0]).getObject()};
+            return ((CustomMappingObject) from).getObject();
 
         } else {
             return from;
@@ -286,17 +266,9 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
 
-    private MappingFunction getMapping(Class toClass, MappingType mappingType, MappingType overrideMappingType, String customMappingName, Object... from) throws Exception {
+    private <From> MappingFunction getMapping(Class toClass, MappingType mappingType, MappingType overrideMappingType, String customMappingName, From from) throws Exception {
 
-        List<Class> classesList = new ArrayList<>();
-
-        for (Object o : from) {
-            classesList.add(o.getClass());
-        }
-
-        Class[] originalClasses = new Class[classesList.size()];
-
-        originalClasses = classesList.toArray(originalClasses);
+        Class originalClass = from.getClass();
 
         if (overrideMappingType != null) {
             mappingType = overrideMappingType;
@@ -304,12 +276,12 @@ public class DomainTransformer implements ApplicationContextAware {
 
 
 
-        return getMappingFromMappingObject(toClass, mappingType, customMappingName, originalClasses);
+        return getMappingFromMappingObject(toClass, mappingType, customMappingName, originalClass);
 
 
     }
 
-    private MappingFunction getMappingFromMappingObject(Class toClass, MappingType mappingType, final String mappingName, final Class... originalClasses) throws Exception {
+    private MappingFunction getMappingFromMappingObject(Class toClass, MappingType mappingType, final String mappingName, final Class originalClass) throws Exception {
 
         Object mappingObject = toClassToMapping.get(toClass);
 
@@ -321,7 +293,10 @@ public class DomainTransformer implements ApplicationContextAware {
 
         Method[] mappingMethods = mappingClassClass.getMethods();
 
-        List<Method> mappingMethodsList = Arrays.stream(mappingMethods).filter(method -> method.isAnnotationPresent(Mapping.class) && isOriginalClassesMatch(originalClasses, method.getAnnotation(Mapping.class).originalClasses()) && isMappingNameMatch(mappingName, method.getAnnotation(Mapping.class).name()))
+        List<Method> mappingMethodsList = Arrays.stream(mappingMethods).filter(method ->
+                        method.isAnnotationPresent(Mapping.class)
+                        && method.getAnnotation(Mapping.class).originalClass().isAssignableFrom(originalClass)
+                        && (mappingName == null || mappingName.equals(method.getAnnotation(Mapping.class).name())))
                 .collect(Collectors.toList());
 
         if (mappingMethodsList.size() == 0) {
@@ -404,26 +379,7 @@ public class DomainTransformer implements ApplicationContextAware {
         return null;
     }
 
-    @SuppressWarnings("unchecked")
-    private boolean isOriginalClassesMatch(Class[] fromOriginalClasses, Class[] methodOriginalClasses) {
-        if (fromOriginalClasses.length != methodOriginalClasses.length) {
-            return false;
-        }
-
-        for (int i = 0; i < fromOriginalClasses.length; i++) {
-            if (!methodOriginalClasses[i].isAssignableFrom(fromOriginalClasses[i])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean isMappingNameMatch(String fromMappingName, String methodMappingName) {
-        return fromMappingName == null || fromMappingName.equals(methodMappingName);
-    }
-
-    private Object eval(Class toPropertyClass, Function fromExpression, Object... from) throws Exception {
+    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
         return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
     }
@@ -434,42 +390,13 @@ public class DomainTransformer implements ApplicationContextAware {
     }
 
     @SuppressWarnings("unchecked")
-    private Object safelyEvaluateClosure(Function fromExpression, Object... from) {
+    private <From> Object safelyEvaluateClosure(Function fromExpression, From from) {
         try {
 
-            switch (from.length) {
-                case 1:
-                    return ((Func1)fromExpression).call(from[0]);
-                case 2:
-                    return ((Func2)fromExpression).call(from[0], from[1]);
-                case 3:
-                    return ((Func3)fromExpression).call(from[0], from[1], from[2]);
-                default:
-                    return null;
-            }
+            return fromExpression.apply(from);
 
         } catch (NullPointerException npe) {
             return null;
-        }
-
-    }
-
-    private boolean isNull(Object... from) {
-        if (from == null) {
-            return true;
-        } else if (from.length == 0) {
-            return true;
-        } else if (from.length == 1 && from[0] == null) {
-            return true;
-        } else {
-            for (Object object : from) {
-                if (object != null) {
-                    return false;
-                }
-
-            }
-
-            return true;
         }
 
     }

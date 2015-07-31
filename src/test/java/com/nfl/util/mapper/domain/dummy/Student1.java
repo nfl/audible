@@ -1,15 +1,15 @@
-package com.nfl.util.mapper.domain;
+package com.nfl.util.mapper.domain.dummy;
 
 /**
  * Created by jackson.brodeur on 7/27/15.
  */
 public class Student1 {
 
-    private String name = "Tom Brady";
+    private String name;
 
-    private Integer age = 18;
+    private Integer age;
 
-    private Double gpa = 3.79;
+    private Double gpa;
 
     public String getName() {
         return name;

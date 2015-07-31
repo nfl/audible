@@ -17,7 +17,7 @@ public @interface Mapping {
 	
 	String name() default "";
 	
-	Class [] originalClasses() default {Object.class};
+	Class originalClass() default Object.class;
 
 	boolean parallel() default true;
 

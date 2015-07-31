@@ -1,4 +1,4 @@
-package com.nfl.util.mapper.domain;
+package com.nfl.util.mapper.domain.dummy;
 
 /**
  * Created by jackson.brodeur on 7/27/15.
@@ -33,5 +33,9 @@ public class Student2 {
 
     public void setNums(Numbers nums) {
         this.nums = nums;
+    }
+
+    public String toString() {
+        return "[firstName: " + firstName + ", lastName: " + lastName + ", Nums: " + nums.toString() + "]";
     }
 }
