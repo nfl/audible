@@ -16,7 +16,7 @@ import java.util.function.Function;
 @MappingTo(Student2.class)
 public class Student2Mapping {
 
-    @Mapping(value = MappingType.FULL, originalClass = Student1.class)
+    @Mapping(type = MappingType.FULL, originalClass = Student1.class)
     public Map<String, Function<Student1, ?>> getMapping() {
         Map<String, Function<Student1, ?>> map = new HashMap<>();
         map.put("firstName", (Student1 s) -> s.getName().split(" ")[0]);
@@ -31,7 +31,7 @@ public class Student2Mapping {
         return map;
     }
 
-    @Mapping(value = MappingType.FULL, originalClass = Student1.class, name = "reverse")
+    @Mapping(type = MappingType.FULL, originalClass = Student1.class, name = "reverse")
     public Map<String, Function<Student1, ?>> reverseMapping() {
         Map<String, Function<Student1, ?>> map = new HashMap<>();
         map.put("lastName", (Student1 s) -> s.getName().split(" ")[0]);

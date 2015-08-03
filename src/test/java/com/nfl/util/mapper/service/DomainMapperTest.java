@@ -18,10 +18,10 @@ import java.util.List;
  */
 @Test
 @ContextConfiguration(classes = {ApplicationTestConfig.class})
-public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
+public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Autowired
-    private DomainTransformer dt;
+    private DomainMapper dt;
 
     private Student1 s1;
 
@@ -45,7 +45,7 @@ public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testDomainTransformer() throws Exception {
-        Student2 s2 = dt.transform(Student2.class, s1);
+        Student2 s2 = dt.map(Student2.class, s1);
         Assert.assertEquals(s1.getName(), s2.getFirstName() + " " + s2.getLastName());
         Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
         Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
@@ -53,7 +53,7 @@ public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testNamedMapping() throws Exception {
-        Student2 s2 = dt.transform(Student2.class,s1, "reverse");
+        Student2 s2 = dt.map(Student2.class, s1, "reverse");
         Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
         Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
         Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
@@ -69,7 +69,7 @@ public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
         s1List.add(s1);
         s1List.add(s1);
 
-        List<Student2> s2List = dt.transformList(Student2.class, s1List, "reverse");
+        List<Student2> s2List = dt.mapList(Student2.class, s1List, "reverse");
 
         s2List.stream().forEach(s2 -> {
             Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
@@ -81,7 +81,7 @@ public class DomainTransformerTest extends AbstractTestNGSpringContextTests {
     @Test
     public void testListMapping() throws Exception {
 
-        List<Student2> s2List = dt.transformList(Student2.class, s1List);
+        List<Student2> s2List = dt.mapList(Student2.class, s1List);
 
         s2List.parallelStream().forEach(s2 -> {
             Assert.assertEquals(s1.getName(), s2.getFirstName() + " " + s2.getLastName());

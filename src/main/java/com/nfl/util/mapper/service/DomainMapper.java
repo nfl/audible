@@ -27,13 +27,13 @@ import java.util.stream.Collectors;
 
 
 /**
- * DomainTransformer uses Map of String, Function to transform one pojo to another
+ * DomainMapper uses Map of String, Function to map one pojo to another
  */
 @SuppressWarnings("unused")
 @Component
-public class DomainTransformer implements ApplicationContextAware {
+public class DomainMapper implements ApplicationContextAware {
 
-    private static final Log log = LogFactory.getLog(DomainTransformer.class);
+    private static final Log log = LogFactory.getLog(DomainMapper.class);
 
     private ApplicationContext applicationContext;
 
@@ -42,45 +42,45 @@ public class DomainTransformer implements ApplicationContextAware {
     private TypeSafeCopy typeSafeCopy = new TypeSafeCopy();
 
 
-    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list) {
+    public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
 
-        return this.transformList(toClass, list, MappingType.FULL, "");
+        return this.mapList(toClass, list, MappingType.FULL, "");
     }
 
 
-    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
+    public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
 
-        return this.transformList(toClass, list, mappingType, "");
+        return this.mapList(toClass, list, mappingType, "");
     }
 
-    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.transformList(toClass, list, MappingType.FULL, mappingName);
+    public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName) {
+        return this.mapList(toClass, list, MappingType.FULL, mappingName);
     }
 
-    public <From, To> List<To> transformList(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
-        return list.parallelStream().map(o -> doTransform(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
+    public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
+        return list.parallelStream().map(o -> doMapping(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
     }
 
 
-    public <From, To> To transform(Class<To> toClass, From from) {
-        return this.transform(toClass, from, "", MappingType.FULL);
+    public <From, To> To map(Class<To> toClass, From from) {
+        return this.map(toClass, from, "", MappingType.FULL);
     }
 
-    public <From, To> To transform(Class<To> toClass, From from, MappingType mappingType) {
-        return this.transform(toClass, from, "", mappingType);
+    public <From, To> To map(Class<To> toClass, From from, MappingType mappingType) {
+        return this.map(toClass, from, "", mappingType);
     }
 
-    public <From, To> To transform(Class<To> toClass, From from, String mappingName) {
-        return this.transform(toClass, from, mappingName, MappingType.FULL);
+    public <From, To> To map(Class<To> toClass, From from, String mappingName) {
+        return this.map(toClass, from, mappingName, MappingType.FULL);
     }
 
-    public <From, To> To transform(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
-        return this.doTransform(toClass, mappingType, mappingName, from);
+    public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
+        return this.doMapping(toClass, mappingType, mappingName, from);
     }
 
 
     @SuppressWarnings("unchecked")
-    private <From, To> To doTransform(final Class<To> toClass, MappingType mappingType, String mappingName, From from) {//Object... from) {
+    private <From, To> To doMapping(final Class<To> toClass, MappingType mappingType, String mappingName, From from) {//Object... from) {
 
         try {
 
@@ -183,7 +183,7 @@ public class DomainTransformer implements ApplicationContextAware {
                 PropertyUtils.setProperty(to, toPropertyName, null);
             } else if (isOverride && isMappingPresent(typeForCollection)) { //Recursively call
 
-                Object toValue = transformList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+                Object toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
 
                 PropertyUtils.setProperty(to, toPropertyName, toValue);
 
@@ -275,10 +275,11 @@ public class DomainTransformer implements ApplicationContextAware {
 
         Method[] mappingMethods = mappingClassClass.getMethods();
 
+
         List<Method> mappingMethodsList = Arrays.stream(mappingMethods).filter(method ->
                 method.isAnnotationPresent(Mapping.class)
                         && method.getAnnotation(Mapping.class).originalClass().isAssignableFrom(originalClass)
-                        && (mappingName == null || mappingName.equals(method.getAnnotation(Mapping.class).name())))
+                        && mappingName.equals(method.getAnnotation(Mapping.class).name()))
                 .collect(Collectors.toList());
 
         if (mappingMethodsList.size() == 0) {
@@ -352,7 +353,7 @@ public class DomainTransformer implements ApplicationContextAware {
     @SuppressWarnings("unchecked")
     private Map<String, Function> getMappingFromMethods(MappingType type, List<Method> mappingMethodsList, Object mappingObject) throws Exception {
         for (Method method : mappingMethodsList) {
-            if (type.equals(method.getAnnotation(Mapping.class).value())) {
+            if (type.equals(method.getAnnotation(Mapping.class).type())) {
                 return ((Map<String, Function>) (method.invoke(mappingObject, (Object[]) null)));
             }
 
@@ -363,7 +364,7 @@ public class DomainTransformer implements ApplicationContextAware {
 
     private <From> Object eval(Class toPropertyClass, Function fromExpression, From from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doTransform(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
+        return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
     }
 
     @SuppressWarnings("unchecked")
