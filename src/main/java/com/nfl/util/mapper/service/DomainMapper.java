@@ -1,6 +1,7 @@
 package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.CustomMappingObject;
+import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.MappingTo;
@@ -9,6 +10,7 @@ import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -31,26 +33,31 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings("unused")
 @Component
-public class DomainMapper implements ApplicationContextAware {
+public class DomainMapper {
 
     private static final Log log = LogFactory.getLog(DomainMapper.class);
 
-    private ApplicationContext applicationContext;
-
-    private Map<Class, Object> toClassToMapping = new HashMap<>();
 
     private TypeSafeCopy typeSafeCopy = new TypeSafeCopy();
 
+    private String defaultMappingName;
+
+    @Autowired
+    private MappingService mappingService;
+
+    public DomainMapper() throws NoSuchMethodException {
+        defaultMappingName = (String) Mapping.class.getDeclaredMethod("name", new Class[]{}).getDefaultValue();
+    }
+
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
-
-        return this.mapList(toClass, list, MappingType.FULL, "");
+        return this.mapList(toClass, list, MappingType.FULL, defaultMappingName);
     }
 
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
 
-        return this.mapList(toClass, list, mappingType, "");
+        return this.mapList(toClass, list, mappingType, defaultMappingName);
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName) {
@@ -63,11 +70,11 @@ public class DomainMapper implements ApplicationContextAware {
 
 
     public <From, To> To map(Class<To> toClass, From from) {
-        return this.map(toClass, from, "", MappingType.FULL);
+        return this.map(toClass, from, defaultMappingName, MappingType.FULL);
     }
 
     public <From, To> To map(Class<To> toClass, From from, MappingType mappingType) {
-        return this.map(toClass, from, "", mappingType);
+        return this.map(toClass, from, defaultMappingName, mappingType);
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName) {
@@ -98,9 +105,10 @@ public class DomainMapper implements ApplicationContextAware {
             }
 
 
-            MappingFunction mappingFunction = getMapping(toClass, mappingType, overrideMappingType, customMappingName, from);
-            Map<String, Function> mapping = mappingFunction.mapping;
-            if (mappingFunction.mappingType == MappingType.FULL_AUTO) {
+            MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, mappingType, from.getClass(), mappingName);
+
+            Map<String, Function> mapping = mappingFunction.getMapping();
+            if (mappingFunction.getMappingType() == MappingType.FULL_AUTO) {
                 typeSafeCopy.copyProperties(to, from);
             }
 
@@ -109,7 +117,7 @@ public class DomainMapper implements ApplicationContextAware {
 
             assert mapping != null;
 
-            boolean parallel = mappingFunction.parallel;
+            boolean parallel = mappingFunction.isParallel();
 
             (parallel ? mapping.entrySet().parallelStream() : mapping.entrySet().stream()).forEach(entry ->
                     {
@@ -181,7 +189,7 @@ public class DomainMapper implements ApplicationContextAware {
 
             if (fromList == null || fromList.isEmpty()) { //Set null if empty
                 PropertyUtils.setProperty(to, toPropertyName, null);
-            } else if (isOverride && isMappingPresent(typeForCollection)) { //Recursively call
+            } else if (isOverride && mappingService.hasMappingForClass(typeForCollection)) { //Recursively call
 
                 Object toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
 
@@ -218,7 +226,7 @@ public class DomainMapper implements ApplicationContextAware {
     }
 
     private void handlePostProcessor(Object to, Class toClass, Object from) throws Exception {
-        Object mappingObject = toClassToMapping.get(toClass);
+        Object mappingObject =  mappingService.getMappingClassObject(toClass);
 
         Class mappingClassClass = mappingObject.getClass();
 
@@ -248,123 +256,11 @@ public class DomainMapper implements ApplicationContextAware {
 
     }
 
-
-    private <From> MappingFunction getMapping(Class toClass, MappingType mappingType, MappingType overrideMappingType, String customMappingName, From from) throws Exception {
-
-        Class originalClass = from.getClass();
-
-        if (overrideMappingType != null) {
-            mappingType = overrideMappingType;
-        }
-
-
-        return getMappingFromMappingObject(toClass, mappingType, customMappingName, originalClass);
-
-
-    }
-
-    private MappingFunction getMappingFromMappingObject(Class toClass, MappingType mappingType, final String mappingName, final Class originalClass) throws Exception {
-
-        Object mappingObject = toClassToMapping.get(toClass);
-
-        if (mappingObject == null) {
-            throw new RuntimeException("No Mapping found for " + toClass);
-        }
-
-        Class mappingClassClass = mappingObject.getClass();
-
-        Method[] mappingMethods = mappingClassClass.getMethods();
-
-
-        List<Method> mappingMethodsList = Arrays.stream(mappingMethods).filter(method ->
-                method.isAnnotationPresent(Mapping.class)
-                        && method.getAnnotation(Mapping.class).originalClass().isAssignableFrom(originalClass)
-                        && mappingName.equals(method.getAnnotation(Mapping.class).name()))
-                .collect(Collectors.toList());
-
-        if (mappingMethodsList.size() == 0) {
-            throw new RuntimeException("No Mapping Found from " + mappingClassClass);
-        } else {
-            MappingFunction mapping = getMappingByType(mappingMethodsList, mappingType, mappingObject);
-            mapping.parallel = mappingMethodsList.stream().allMatch(method -> method.getAnnotation(Mapping.class).parallel());
-            return mapping;
-        }
-
-    }
-
-
-    private MappingFunction getMappingByType(List<Method> mappingMethodsList, MappingType mappingType, Object mappingObject) throws Exception {
-
-        MappingFunction mappingFunction = new MappingFunction();
-
-        Map<String, Function> mapping;
-
-        if (MappingType.MIN.equals(mappingType)) {
-            mapping = getMappingFromMethods(MappingType.MIN, mappingMethodsList, mappingObject);
-
-            if (mapping == null) {
-                Map<String, Function> fullMapping = getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
-                if (fullMapping == null) {
-                    mappingFunction.mappingType = MappingType.FULL_AUTO;
-                    mappingFunction.mapping = getMappingFromMethods(MappingType.FULL_AUTO, mappingMethodsList, mappingObject);
-                } else {
-                    mappingFunction.mappingType = MappingType.FULL;
-                    mappingFunction.mapping = fullMapping;
-                }
-
-            } else {
-                mappingFunction.mappingType = MappingType.MIN;
-                mappingFunction.mapping = mapping;
-            }
-
-        } else {
-            mapping = getMappingFromMethods(MappingType.MIN, mappingMethodsList, mappingObject);
-
-            if (mapping != null) {
-                Map<String, Function> mappingFromMethods = getMappingFromMethods(MappingType.ADDITIONAL, mappingMethodsList, mappingObject);
-                if (mappingFromMethods != null) {
-                    mapping.putAll(mappingFromMethods);
-                }
-
-                mappingFunction.mappingType = MappingType.FULL;
-                mappingFunction.mapping = mapping;
-            } else {
-                Map<String, Function> fullMapping = getMappingFromMethods(MappingType.FULL, mappingMethodsList, mappingObject);
-                if (fullMapping == null) {
-                    mappingFunction.mappingType = MappingType.FULL_AUTO;
-                    mappingFunction.mapping = getMappingFromMethods(MappingType.FULL_AUTO, mappingMethodsList, mappingObject);
-                } else {
-                    mappingFunction.mappingType = MappingType.FULL;
-                    mappingFunction.mapping = fullMapping;
-                }
-            }
-
-        }
-
-        return mappingFunction;
-    }
-
-    private class MappingFunction {
-        MappingType mappingType;
-        Map<String, Function> mapping;
-        boolean parallel;
-    }
-
     @SuppressWarnings("unchecked")
-    private Map<String, Function> getMappingFromMethods(MappingType type, List<Method> mappingMethodsList, Object mappingObject) throws Exception {
-        for (Method method : mappingMethodsList) {
-            if (type.equals(method.getAnnotation(Mapping.class).type())) {
-                return ((Map<String, Function>) (method.invoke(mappingObject, (Object[]) null)));
-            }
-
-        }
-
-        return null;
-    }
 
     private <From> Object eval(Class toPropertyClass, Function fromExpression, From from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && isMappingPresent(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
+        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
     }
 
     @SuppressWarnings("unchecked")
@@ -380,36 +276,6 @@ public class DomainMapper implements ApplicationContextAware {
 
         } catch (NullPointerException npe) {
             return null;
-        }
-
-    }
-
-    private boolean isMappingPresent(Class toClass) {
-        return toClassToMapping.containsKey(toClass);
-    }
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-
-    }
-
-    @PostConstruct
-    void loadClasses() throws Exception {
-
-        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
-        // Filter to include only classes that have a particular annotation.
-        provider.addIncludeFilter(new AnnotationTypeFilter(MappingTo.class));
-        // Find classes in the given package (or subpackages)
-        Set<BeanDefinition> beans = provider.findCandidateComponents("com.nfl");
-
-        for (BeanDefinition object : beans) {
-            Class mappingClass = Class.forName(object.getBeanClassName());
-            MappingTo mappingTo = (MappingTo) mappingClass.getAnnotation(MappingTo.class);
-            Class toClass = mappingTo.value();
-
-            toClassToMapping.put(toClass, applicationContext.getBean(mappingClass));
-
         }
 
     }

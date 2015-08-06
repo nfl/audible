@@ -1,6 +1,7 @@
 package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.ApplicationTestConfig;
+import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.domain.dummy.Student1;
 import com.nfl.util.mapper.domain.dummy.Student2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,8 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,6 +60,19 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
         Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
         Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
+    }
+
+    @Test(enabled = false)
+    public void timeTest() throws Exception {
+        for (int j = 0; j < 20; j++) {
+            Instant start = Instant.now();
+            for (int i = 0; i < 1000000; i++) {
+                dt.map(Student2.class, s1);
+            }
+            Instant stop = Instant.now();
+
+            System.out.println(Duration.between(start, stop).toString().replaceAll("[^\\d.]", ""));
+        }
     }
 
     @Test
