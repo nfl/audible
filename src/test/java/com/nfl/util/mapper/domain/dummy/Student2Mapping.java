@@ -45,5 +45,27 @@ public class Student2Mapping {
 
         return map;
     }
+
+    @Mapping(type = MappingType.MIN, originalClass = Student1.class, name = "min_add")
+    public Map<String, Function<Student1, ?>> minMapping() {
+        Map<String, Function<Student1, ?>> map = new HashMap<>();
+        map.put("firstName", (Student1 s) -> s.getName().split(" ")[0]);
+        try {
+            map.put("lastName", (Student1 s) -> s.getName().split(" ")[1]);
+        } catch (Exception e) {
+            map.put("lastName", (Student1 s) -> null);
+        }
+
+        return map;
+    }
+
+    @Mapping(type = MappingType.ADDITIONAL, originalClass = Student1.class, name = "min_add")
+    public Map<String, Function<Student1, ?>> addMapping() {
+        Map<String, Function<Student1, ?>> map = new HashMap<>();
+        map.put("nums.age", (Student1 s) -> s.getAge());
+        map.put("nums.gpa", (Student1 s) -> s.getGpa());
+
+        return map;
+    }
 }
 

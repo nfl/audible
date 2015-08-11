@@ -1,7 +1,9 @@
 package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.ApplicationTestConfig;
-import com.nfl.util.mapper.annotation.Mapping;
+import com.nfl.util.mapper.MappingType;
+import com.nfl.util.mapper.domain.dummy.MyList;
+import com.nfl.util.mapper.domain.dummy.Numbers;
 import com.nfl.util.mapper.domain.dummy.Student1;
 import com.nfl.util.mapper.domain.dummy.Student2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.testng.annotations.Test;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -28,7 +31,11 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     private Student1 s1;
 
+    private Student1 student;
+
     private List<Student1> s1List;
+
+    private HashSet<Student1> set;
 
     @BeforeTest
     public void setUp() {
@@ -44,6 +51,15 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         s1List.add(s1);
         s1List.add(s1);
         s1List.add(s1);
+
+        student = new Student1();
+        student.setName("Peyton Manning");
+        student.setAge(100);
+        student.setGpa(2.10);
+        set = new HashSet<>();
+        set.add(s1);
+        set.add(student);
+
     }
 
     @Test
@@ -77,13 +93,6 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testNamedListMapping() throws Exception {
-        List<Student1> s1List = new ArrayList<>();
-
-        s1List.add(s1);
-        s1List.add(s1);
-        s1List.add(s1);
-        s1List.add(s1);
-        s1List.add(s1);
 
         List<Student2> s2List = dt.mapList(Student2.class, s1List, "reverse");
 
@@ -104,6 +113,42 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
             Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
             Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
         });
+    }
+
+    @Test
+    public void testInnerCollections() throws Exception {
+        MyList list = dt.map(MyList.class, set);
+        set.stream().forEach(s -> {
+            Student2 temp = new Student2();
+            temp.setFirstName(s.getName().split(" ")[0]);
+            temp.setLastName(s.getName().split(" ")[1]);
+            Numbers n = new Numbers();
+            n.setAge(s.getAge());
+            n.setGpa(s.getGpa());
+            temp.setNums(n);
+            Assert.assertTrue(list.getData().contains(temp));
+        });
+
+        MyList list2 = dt.map(MyList.class, set, "parallel");
+        set.stream().forEach(s -> {
+            Student2 temp = new Student2();
+            temp.setFirstName(s.getName().split(" ")[0]);
+            temp.setLastName(s.getName().split(" ")[1]);
+            Numbers n = new Numbers();
+            n.setAge(s.getAge());
+            n.setGpa(s.getGpa());
+            temp.setNums(n);
+            Assert.assertTrue(list2.getData().contains(temp));
+        });
+    }
+
+    @Test
+    public void testMinPlusAdditional() throws Exception {
+        Student2 s2 = dt.map(Student2.class, s1, "min_add", MappingType.FULL);
+        Assert.assertEquals(s2.getFirstName(), s1.getName().split(" ")[0]);
+        Assert.assertEquals(s2.getLastName(), s1.getName().split(" ")[1]);
+        Assert.assertEquals(s2.getNums().getAge(), s1.getAge());
+        Assert.assertEquals(s2.getNums().getGpa(), s1.getGpa());
     }
 
 }

@@ -4,21 +4,13 @@ import com.nfl.util.mapper.CustomMappingObject;
 import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
-import com.nfl.util.mapper.annotation.MappingTo;
 import com.nfl.util.mapper.annotation.PostProcessor;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -65,8 +57,28 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
+        return list.stream().map(o -> doMapping(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
+    }
+
+    public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
+        return this.mapListParallel(toClass, list, MappingType.FULL, defaultMappingName);
+    }
+
+
+    public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, MappingType mappingType) {
+
+        return this.mapListParallel(toClass, list, mappingType, defaultMappingName);
+    }
+
+    public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName) {
+        return this.mapListParallel(toClass, list, MappingType.FULL, mappingName);
+    }
+
+    public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
         return list.parallelStream().map(o -> doMapping(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
     }
+
+
 
 
     public <From, To> To map(Class<To> toClass, From from) {
@@ -117,9 +129,7 @@ public class DomainMapper {
 
             assert mapping != null;
 
-            boolean parallel = mappingFunction.isParallel();
-
-            (parallel ? mapping.entrySet().parallelStream() : mapping.entrySet().stream()).forEach(entry ->
+            mapping.entrySet().stream().forEach(entry ->
                     {
                         String toPropertyName = entry.getKey();
                         Function fromFunction = entry.getValue();
@@ -129,9 +139,7 @@ public class DomainMapper {
 
                             //If the field is collection
                             if (Collection.class.isAssignableFrom(toPropertyType)) {
-
-                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName);
-
+                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, mappingFunction.isParallelCollections());
                             } else {
 
                                 Object value = eval(toPropertyType, fromFunction, finalFrom);
@@ -156,8 +164,7 @@ public class DomainMapper {
         }
     }
 
-    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName) throws Exception {
-
+    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean parallel) throws Exception {
         Field field = toClass.getDeclaredField(toPropertyName);
 
         Type type = field.getGenericType();
@@ -191,7 +198,12 @@ public class DomainMapper {
                 PropertyUtils.setProperty(to, toPropertyName, null);
             } else if (isOverride && mappingService.hasMappingForClass(typeForCollection)) { //Recursively call
 
-                Object toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+                Object toValue;
+                if (parallel) {
+                    toValue = mapListParallel(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+                } else {
+                    toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+                }
 
                 PropertyUtils.setProperty(to, toPropertyName, toValue);
 

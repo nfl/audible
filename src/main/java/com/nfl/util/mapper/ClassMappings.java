@@ -18,14 +18,14 @@ public class ClassMappings {
     private Map<String, Map<String, Function>> additionalMapping;
     private Map<String, Map<String, Function>> fullAutoMapping;
 
-    private Map<String, Boolean> parallel;
+    private Map<String, Boolean> parallelProcessCollections;
 
     public ClassMappings(Class toClass) {
         minMapping = new HashMap<>();
         fullMapping = new HashMap<>();
         additionalMapping = new HashMap<>();
         fullAutoMapping = new HashMap<>();
-        parallel = new HashMap<>();
+        parallelProcessCollections = new HashMap<>();
         this.toClass = toClass;
     }
 
@@ -39,13 +39,13 @@ public class ClassMappings {
 
     public boolean isParallel(MappingType type, Class originalClass, String mappingName) {
         String key = originalClass + "#" + mappingName + "#" + type;
-        return parallel.get(key);
+        return parallelProcessCollections.get(key) != null ? parallelProcessCollections.get(key) : false;
     }
 
-    public void addMapping(MappingType type, Class originalClass, String mappingName, Map<String, Function> functionMapping, boolean parallel) {
+    public void addMapping(MappingType type, Class originalClass, String mappingName, Map<String, Function> functionMapping, boolean parallelCollections) {
         String key = originalClass + "#" + mappingName;
         String parallelKey = key + "#" + type;
-        this.parallel.put(parallelKey, parallel);
+        this.parallelProcessCollections.put(parallelKey, parallelCollections);
         switch(type) {
             case MIN:
                 minMapping.put(key, functionMapping);

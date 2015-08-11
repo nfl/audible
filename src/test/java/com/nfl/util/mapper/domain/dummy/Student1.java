@@ -34,4 +34,8 @@ public class Student1 {
     public void setAge(Integer age) {
         this.age = age;
     }
+
+    public String toString() {
+        return "[name: " + name + ", age: " + age + ", gpa: " +  gpa + "]";
+    }
 }

@@ -19,6 +19,6 @@ public @interface Mapping {
 	
 	Class originalClass() default Object.class;
 
-	boolean parallel() default false;
+	boolean parallelProcessCollections() default false;
 
 }
