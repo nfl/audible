@@ -1,6 +1,6 @@
 package com.nfl.util.mapper.service;
 
-import com.nfl.util.mapper.CustomMappingObject;
+import com.nfl.util.mapper.CustomMappingWrapper;
 import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
@@ -110,8 +110,8 @@ public class DomainMapper {
             MappingType overrideMappingType = null;
             String customMappingName = mappingName;
 
-            if (from instanceof CustomMappingObject) {
-                CustomMappingObject cmo = (CustomMappingObject) from;
+            if (from instanceof CustomMappingWrapper) {
+                CustomMappingWrapper cmo = (CustomMappingWrapper) from;
                 overrideMappingType = cmo.getMappingType();
                 customMappingName = cmo.getMappingName();
             }
@@ -180,8 +180,8 @@ public class DomainMapper {
             MappingType overrideMappingTypeNested = null;
 
             if (object != null) {
-                if (object instanceof CustomMappingObject) {
-                    CustomMappingObject cmo = (CustomMappingObject) object;
+                if (object instanceof CustomMappingWrapper) {
+                    CustomMappingWrapper cmo = (CustomMappingWrapper) object;
                     overrideMappingTypeNested = cmo.getMappingType();
                     fromList = new ArrayList((Collection) cmo.getObject());
                 } else {
