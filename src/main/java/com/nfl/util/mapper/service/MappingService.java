@@ -5,6 +5,7 @@ import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.MappingTo;
+import org.apache.commons.beanutils.PropertyUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
@@ -69,6 +70,18 @@ public class MappingService implements ApplicationContextAware{
                     Class originalClass = mapping.originalClass();
                     String name = mapping.name();
                     Map<String, Function> functionMapping = (Map<String, Function>) method.invoke(mappingObject);
+
+                    final Object to = toClass.newInstance();
+                    for (Map.Entry<String, Function> entry : functionMapping.entrySet()) {
+                        try {
+                            PropertyUtils.setNestedProperty(to, entry.getKey(), null);
+                        } catch (NoSuchMethodException e) {
+                            throw new RuntimeException("Invalid Mapping in " + mappingClass.getName() + "." + method.getName() + ": Cannot set field '" + entry.getKey() + "' in class " + toClass.getName());
+                        }
+
+                    }
+
+
                     value.addMapping(type, originalClass, name, functionMapping, parallelCollections);
                 }
             }
