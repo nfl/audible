@@ -32,24 +32,21 @@ public class DomainMapper {
 
     private TypeSafeCopy typeSafeCopy = new TypeSafeCopy();
 
-    private String defaultMappingName;
+    private static final String EMPTY = "";
 
     @Autowired
     private MappingService mappingService;
 
-    public DomainMapper() throws NoSuchMethodException {
-        defaultMappingName = (String) Mapping.class.getDeclaredMethod("name", new Class[]{}).getDefaultValue();
-    }
 
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
-        return this.mapList(toClass, list, MappingType.FULL, defaultMappingName);
+        return this.mapList(toClass, list, MappingType.FULL, EMPTY);
     }
 
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
 
-        return this.mapList(toClass, list, mappingType, defaultMappingName);
+        return this.mapList(toClass, list, mappingType, EMPTY);
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName) {
@@ -61,13 +58,13 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
-        return this.mapListParallel(toClass, list, MappingType.FULL, defaultMappingName);
+        return this.mapListParallel(toClass, list, MappingType.FULL, EMPTY);
     }
 
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, MappingType mappingType) {
 
-        return this.mapListParallel(toClass, list, mappingType, defaultMappingName);
+        return this.mapListParallel(toClass, list, mappingType, EMPTY);
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName) {
@@ -82,11 +79,11 @@ public class DomainMapper {
 
 
     public <From, To> To map(Class<To> toClass, From from) {
-        return this.map(toClass, from, defaultMappingName, MappingType.FULL);
+        return this.map(toClass, from, EMPTY, MappingType.FULL);
     }
 
     public <From, To> To map(Class<To> toClass, From from, MappingType mappingType) {
-        return this.map(toClass, from, defaultMappingName, mappingType);
+        return this.map(toClass, from, EMPTY, mappingType);
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName) {
