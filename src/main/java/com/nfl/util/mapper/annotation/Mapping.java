@@ -17,7 +17,7 @@ public @interface Mapping {
 	
 	String name() default "";
 	
-	Class originalClass() default Object.class;
+	Class originalClass();
 
 	boolean parallelProcessCollections() default false;
 

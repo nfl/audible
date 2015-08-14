@@ -1,6 +1,11 @@
 package com.nfl.util.mapper;
 
+import com.nfl.util.mapper.annotation.PostProcessor;
+
+import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -17,6 +22,7 @@ public class ClassMappings {
     private Map<String, Map<String, Function>> fullMapping;
     private Map<String, Map<String, Function>> additionalMapping;
     private Map<String, Map<String, Function>> fullAutoMapping;
+    private Map<String, List<Method>> postProcessors;
 
     private Map<String, Boolean> parallelProcessCollections;
 
@@ -26,6 +32,7 @@ public class ClassMappings {
         additionalMapping = new HashMap<>();
         fullAutoMapping = new HashMap<>();
         parallelProcessCollections = new HashMap<>();
+        postProcessors = new HashMap<>();
         this.toClass = toClass;
     }
 
@@ -60,6 +67,22 @@ public class ClassMappings {
                 fullAutoMapping.put(key, functionMapping);
                 break;
         }
+    }
+
+    public void addPostProcessors(Method method, PostProcessor postProcessor) {
+        String key = postProcessor.originalClass() + "#" + postProcessor.mappingName();
+        if (postProcessors.containsKey(key)) {
+            postProcessors.get(key).add(method);
+        } else {
+            List<Method> methods = new ArrayList<>();
+            methods.add(method);
+            postProcessors.put(key, methods);
+        }
+    }
+
+    public List<Method> getPostProcessors(Class originalClass, String mappingName) {
+        String key = originalClass + "#" + mappingName;
+        return postProcessors.get(key);
     }
 
     public Map<String, Map<String, Function>> getFull() {

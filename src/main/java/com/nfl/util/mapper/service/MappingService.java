@@ -5,6 +5,7 @@ import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.MappingTo;
+import com.nfl.util.mapper.annotation.PostProcessor;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -83,6 +85,25 @@ public class MappingService implements ApplicationContextAware{
 
 
                     value.addMapping(type, originalClass, name, functionMapping, parallelCollections);
+                } else if (method.isAnnotationPresent(PostProcessor.class)) {
+                    PostProcessor postProcessor = method.getAnnotation(PostProcessor.class);
+
+                    if (!method.getReturnType().equals(Void.TYPE)) {
+                        throw new RuntimeException("Post Processor's return type must be void");
+                    }
+
+                    Class<?>[] parameterTypes = method.getParameterTypes();
+
+                    if (parameterTypes.length != 2) {
+                        throw new RuntimeException("Post Processor must have 2 parameters of type toClass, fromClass");
+                    }
+
+                    if (!parameterTypes[0].equals(toClass) || !parameterTypes[1].equals(postProcessor.originalClass())) {
+                        throw new RuntimeException("Post Processor originalClass mismatches the parameter types");
+                    }
+
+                    value.addPostProcessors(method, postProcessor);
+
                 }
             }
 
@@ -114,5 +135,9 @@ public class MappingService implements ApplicationContextAware{
         mappingFunction.setParallelCollections(cacheMap.get(toClass).isParallel(type, originalClass, name));
 
         return mappingFunction;
+    }
+
+    public List<Method> getPostProcessors(Class toClass, Class originalClass, String name) {
+        return cacheMap.get(toClass).getPostProcessors(originalClass, name);
     }
 }

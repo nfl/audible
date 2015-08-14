@@ -107,15 +107,11 @@ public class DomainMapper {
 
             final To to = toClass.newInstance();
 
-            MappingType overrideMappingType = null;
-            String customMappingName = mappingName;
-
             if (from instanceof CustomMappingWrapper) {
                 CustomMappingWrapper cmo = (CustomMappingWrapper) from;
-                overrideMappingType = cmo.getMappingType();
-                customMappingName = cmo.getMappingName();
+                mappingType = cmo.getMappingType();
+                mappingName = cmo.getMappingName();
             }
-
 
             MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, mappingType, from.getClass(), mappingName);
 
@@ -154,7 +150,7 @@ public class DomainMapper {
                     }
             );
 
-            handlePostProcessor(to, toClass, from);
+            handlePostProcessor(to, toClass, from, mappingName);
 
 
             return to;
@@ -237,30 +233,18 @@ public class DomainMapper {
         }
     }
 
-    private void handlePostProcessor(Object to, Class toClass, Object from) throws Exception {
-        Object mappingObject =  mappingService.getMappingClassObject(toClass);
+    private void handlePostProcessor(Object to, Class toClass, Object from, String mappingName) throws Exception {
+        List<Method> methodsList =  mappingService.getPostProcessors(toClass, from.getClass(), mappingName);
 
-        Class mappingClassClass = mappingObject.getClass();
-
-        Method[] mappingMethods = mappingClassClass.getMethods();
-
-        List<Class> classesList = new ArrayList<>();
         List<Object> objectList = new ArrayList<>();
-
-        classesList.add(toClass);
         objectList.add(to);
-
-        classesList.add(from.getClass());
         objectList.add(from);
 
-        Class[] argumentClasses = new Class[classesList.size()];
         Object[] objectArray = new Object[objectList.size()];
 
-        final Class[] finalArgumentClasses = classesList.toArray(argumentClasses);
         objectArray = objectList.toArray(objectArray);
 
-        List<Method> methodsList = Arrays.stream(mappingMethods).filter(method -> method.isAnnotationPresent(PostProcessor.class) && Arrays.equals(method.getParameterTypes(), finalArgumentClasses))
-                .collect(Collectors.toList());
+        Object mappingObject = mappingService.getMappingClassObject(toClass);
 
         for (Method method : methodsList) {
             method.invoke(mappingObject, objectArray);
