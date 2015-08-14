@@ -40,39 +40,37 @@ public class DomainMapper {
 
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
-        return this.mapList(toClass, list, MappingType.FULL, EMPTY);
+        return this.mapList(toClass, list, EMPTY, MappingType.FULL);
     }
 
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType) {
-
-        return this.mapList(toClass, list, mappingType, EMPTY);
+        return this.mapList(toClass, list, EMPTY, mappingType);
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.mapList(toClass, list, MappingType.FULL, mappingName);
+        return this.mapList(toClass, list, mappingName, MappingType.FULL);
     }
 
-    public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
-        return list.stream().map(o -> doMapping(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
+    public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
+        return list.stream().map(o -> doMapping(toClass, o, mappingName, mappingType)).collect(Collectors.toList());
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
-        return this.mapListParallel(toClass, list, MappingType.FULL, EMPTY);
+        return this.mapListParallel(toClass, list, EMPTY, MappingType.FULL);
     }
 
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, MappingType mappingType) {
-
-        return this.mapListParallel(toClass, list, mappingType, EMPTY);
+        return this.mapListParallel(toClass, list, EMPTY, mappingType);
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.mapListParallel(toClass, list, MappingType.FULL, mappingName);
+        return this.mapListParallel(toClass, list, mappingName, MappingType.FULL);
     }
 
-    public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, MappingType mappingType, String mappingName) {
-        return list.parallelStream().map(o -> doMapping(toClass, mappingType, mappingName, o)).collect(Collectors.toList());
+    public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
+        return list.parallelStream().map(o -> doMapping(toClass, o, mappingName, mappingType)).collect(Collectors.toList());
     }
 
 
@@ -91,12 +89,12 @@ public class DomainMapper {
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
-        return this.doMapping(toClass, mappingType, mappingName, from);
+        return this.doMapping(toClass, from, mappingName, mappingType);
     }
 
 
     @SuppressWarnings("unchecked")
-    private <From, To> To doMapping(final Class<To> toClass, MappingType mappingType, String mappingName, From from) {//Object... from) {
+    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType) {
 
         try {
 
@@ -110,7 +108,7 @@ public class DomainMapper {
                 mappingName = cmo.getMappingName();
             }
 
-            MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, mappingType, from.getClass(), mappingName);
+            MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
 
             Map<String, Function> mapping = mappingFunction.getMapping();
             if (mappingFunction.getMappingType() == MappingType.FULL_AUTO) {
@@ -233,6 +231,10 @@ public class DomainMapper {
     private void handlePostProcessor(Object to, Class toClass, Object from, String mappingName) throws Exception {
         List<Method> methodsList =  mappingService.getPostProcessors(toClass, from.getClass(), mappingName);
 
+        if (methodsList == null) {
+            return;
+        }
+
         List<Object> objectList = new ArrayList<>();
         objectList.add(to);
         objectList.add(from);
@@ -253,7 +255,7 @@ public class DomainMapper {
 
     private <From> Object eval(Class toPropertyClass, Function fromExpression, From from) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, MappingType.MIN, "", rhs) : rhs;
+        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, rhs, "", MappingType.MIN) : rhs;
     }
 
     @SuppressWarnings("unchecked")

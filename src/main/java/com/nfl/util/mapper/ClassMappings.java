@@ -44,12 +44,12 @@ public class ClassMappings {
         this.mappingClass = mappingClass;
     }
 
-    public boolean isParallel(MappingType type, Class originalClass, String mappingName) {
+    public boolean isParallel(Class originalClass, String mappingName, MappingType type) {
         String key = originalClass + "#" + mappingName + "#" + type;
         return parallelProcessCollections.get(key) != null ? parallelProcessCollections.get(key) : false;
     }
 
-    public void addMapping(MappingType type, Class originalClass, String mappingName, Map<String, Function> functionMapping, boolean parallelCollections) {
+    public void addMapping(Class originalClass, String mappingName, MappingType type, Map<String, Function> functionMapping, boolean parallelCollections) {
         String key = originalClass + "#" + mappingName;
         String parallelKey = key + "#" + type;
         this.parallelProcessCollections.put(parallelKey, parallelCollections);
@@ -89,7 +89,7 @@ public class ClassMappings {
         return fullMapping;
     }
 
-    public Map<String, Function> getMapping(MappingType type, Class originalClass, String mappingName) {
+    public Map<String, Function> getMapping(Class originalClass, String mappingName, MappingType type) {
 
         Map<String, Function> requestedMapping = null;
 

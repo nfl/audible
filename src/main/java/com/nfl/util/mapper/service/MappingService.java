@@ -82,8 +82,7 @@ public class MappingService implements ApplicationContextAware{
 
                     }
 
-
-                    value.addMapping(type, originalClass, name, functionMapping, parallelCollections);
+                    value.addMapping(originalClass, name, type, functionMapping, parallelCollections);
                 } else if (method.isAnnotationPresent(PostProcessor.class)) {
                     PostProcessor postProcessor = method.getAnnotation(PostProcessor.class);
 
@@ -102,7 +101,6 @@ public class MappingService implements ApplicationContextAware{
                     }
 
                     value.addPostProcessors(method, postProcessor);
-
                 }
             }
 
@@ -127,11 +125,11 @@ public class MappingService implements ApplicationContextAware{
         return mappingInstanceMap.get(toClass);
     }
 
-    public MappingFunction getMappingFunction(Class toClass, MappingType type, Class originalClass, String name) {
+    public MappingFunction getMappingFunction(Class toClass, Class originalClass, String name, MappingType type) {
         MappingFunction mappingFunction = new MappingFunction();
-        mappingFunction.setMapping(cacheMap.get(toClass).getMapping(type, originalClass, name));
+        mappingFunction.setMapping(cacheMap.get(toClass).getMapping(originalClass, name, type));
         mappingFunction.setMappingType(type);
-        mappingFunction.setParallelCollections(cacheMap.get(toClass).isParallel(type, originalClass, name));
+        mappingFunction.setParallelCollections(cacheMap.get(toClass).isParallel(originalClass, name, type));
 
         return mappingFunction;
     }
