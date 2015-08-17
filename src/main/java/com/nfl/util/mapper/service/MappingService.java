@@ -8,6 +8,7 @@ import com.nfl.util.mapper.annotation.MappingTo;
 import com.nfl.util.mapper.annotation.PostProcessor;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -28,7 +29,10 @@ import java.util.function.Function;
  * Created by jackson.brodeur on 8/3/15.
  */
 @Service
-public class MappingService implements ApplicationContextAware{
+public class MappingService implements ApplicationContextAware {
+
+    @Value("${domain.mapper.package:com.nfl}")
+    private String domainMapperPackage;
 
     private Map<Class, ClassMappings> cacheMap;
 
@@ -43,7 +47,7 @@ public class MappingService implements ApplicationContextAware{
     }
 
     @PostConstruct
-    void initializeCacheMap() throws Exception{
+    void initializeCacheMap() throws Exception {
         loadClasses();
     }
 
@@ -52,7 +56,7 @@ public class MappingService implements ApplicationContextAware{
         // Filter to include only classes that have a particular annotation.
         provider.addIncludeFilter(new AnnotationTypeFilter(MappingTo.class));
         // Find classes in the given package (or subpackages)
-        Set<BeanDefinition> beans = provider.findCandidateComponents("com.nfl");
+        Set<BeanDefinition> beans = provider.findCandidateComponents(domainMapperPackage);
 
         for (BeanDefinition object : beans) {
             Class mappingClass = Class.forName(object.getBeanClassName());
@@ -63,7 +67,7 @@ public class MappingService implements ApplicationContextAware{
             Object mappingObject = applicationContext.getBean(mappingClass);
             mappingInstanceMap.put(toClass, mappingObject);
 
-            for(Method method: mappingClass.getMethods()) {
+            for (Method method : mappingClass.getMethods()) {
                 if (method.isAnnotationPresent(Mapping.class)) {
                     Mapping mapping = method.getAnnotation(Mapping.class);
                     boolean parallelCollections = mapping.parallelProcessCollections();
@@ -78,6 +82,8 @@ public class MappingService implements ApplicationContextAware{
                             PropertyUtils.setNestedProperty(to, entry.getKey(), null);
                         } catch (NoSuchMethodException e) {
                             throw new RuntimeException("Invalid Mapping in " + mappingClass.getName() + "." + method.getName() + ": Cannot set field '" + entry.getKey() + "' in class " + toClass.getName());
+                        } catch (NullPointerException e) {
+                            //Do nothing setting nulls on primitives //TODO: Fix
                         }
 
                     }
@@ -105,7 +111,6 @@ public class MappingService implements ApplicationContextAware{
             }
 
 
-
             cacheMap.put(toClass, value);
         }
 
@@ -126,10 +131,19 @@ public class MappingService implements ApplicationContextAware{
     }
 
     public MappingFunction getMappingFunction(Class toClass, Class originalClass, String name, MappingType type) {
+
         MappingFunction mappingFunction = new MappingFunction();
-        mappingFunction.setMapping(cacheMap.get(toClass).getMapping(originalClass, name, type));
+
+        ClassMappings classMappings = cacheMap.get(toClass);
+
+        if (classMappings == null) {
+            throw new RuntimeException("No Mapping found for type : " + toClass.getName());
+        }
+
+        mappingFunction.setMapping(classMappings.getMapping(originalClass, name, type));
         mappingFunction.setMappingType(type);
-        mappingFunction.setParallelCollections(cacheMap.get(toClass).isParallel(originalClass, name, type));
+        mappingFunction.setParallelCollections(classMappings.isParallel(originalClass, name, type));
+
 
         return mappingFunction;
     }
