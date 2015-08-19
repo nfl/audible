@@ -40,6 +40,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
     @BeforeTest
     public void setUp() {
         s1 = new Student1();
+        s1.setId(1);
         s1.setName("Tom Brady");
         s1.setAge(21);
         s1.setGpa(3.99);
@@ -151,4 +152,13 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         Assert.assertEquals(s2.getNums().getGpa(), s1.getGpa());
     }
 
+
+    @Test
+    public void testFullAuto() throws Exception {
+        Student2 s2 = dt.map(Student2.class, s1, MappingType.FULL_AUTO);
+        Assert.assertNotNull(s2);
+
+        s2 = dt.map(Student2.class, s1, MappingType.FULL_AUTO);
+        Assert.assertNotNull(s2);
+    }
 }

@@ -5,11 +5,21 @@ package com.nfl.util.mapper.domain.dummy;
  */
 public class Student2 {
 
+    private Integer id;
+
     private String firstName;
 
     private String lastName;
 
     private Numbers nums = new Numbers();
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
     public String getFirstName() {
         return firstName;

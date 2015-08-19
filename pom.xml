@@ -3,7 +3,7 @@
 
 	<groupId>com.nfl.util</groupId>
 	<artifactId>pojo-mapper</artifactId>
-	<version>3.3-SNAPSHOT</version>
+	<version>3.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>pojo-mapper</name>
@@ -20,6 +20,11 @@
     </properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>ma.glasnost.orika</groupId>
+			<artifactId>orika-core</artifactId>
+			<version>1.4.6</version>
+		</dependency>
         <dependency>
 	        <groupId>commons-beanutils</groupId>
 	  		<artifactId>commons-beanutils</artifactId>

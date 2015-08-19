@@ -124,7 +124,19 @@ public class ClassMappings {
                 requestedMapping = additionalMapping.get(key);
                 break;
             case FULL_AUTO:
-                requestedMapping = fullAutoMapping.get(key);
+                if(fullAutoMapping.containsKey(key)) {
+                    requestedMapping = fullAutoMapping.get(key);
+                } else if(fullMapping.containsKey(key)) {
+                    requestedMapping = fullMapping.get(key);
+                } else if (minMapping.containsKey(key) && additionalMapping.containsKey(key)) {
+                    requestedMapping = new HashMap<>();
+                    requestedMapping.putAll(minMapping.get(key));
+                    requestedMapping.putAll(additionalMapping.get(key));
+                } else if (fullAutoMapping.containsKey(key)) {
+                    requestedMapping = fullAutoMapping.get(key);
+                } else {
+                    requestedMapping = null;
+                }
                 break;
         }
 

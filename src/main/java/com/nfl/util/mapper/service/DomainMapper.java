@@ -5,6 +5,10 @@ import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
 import com.nfl.util.mapper.annotation.Mapping;
 import com.nfl.util.mapper.annotation.PostProcessor;
+import ma.glasnost.orika.MapperFacade;
+import ma.glasnost.orika.MapperFactory;
+import ma.glasnost.orika.impl.DefaultMapperFactory;
+import ma.glasnost.orika.metadata.TypeFactory;
 import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,6 +38,8 @@ public class DomainMapper {
 
     private static final String EMPTY = "";
 
+    private MapperFactory mapperFactory = new DefaultMapperFactory.Builder().build();
+
     @Autowired
     private MappingService mappingService;
 
@@ -53,7 +59,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
-        return list.stream().map(o -> doMapping(toClass, o, mappingName, mappingType)).collect(Collectors.toList());
+        return list.stream().map(o -> doMapping(toClass, o, mappingName, mappingType, false)).collect(Collectors.toList());
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
@@ -70,7 +76,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
-        return list.parallelStream().map(o -> doMapping(toClass, o, mappingName, mappingType)).collect(Collectors.toList());
+        return list.parallelStream().map(o -> doMapping(toClass, o, mappingName, mappingType, false)).collect(Collectors.toList());
     }
 
 
@@ -89,18 +95,20 @@ public class DomainMapper {
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
-        return this.doMapping(toClass, from, mappingName, mappingType);
+        return this.doMapping(toClass, from, mappingName, mappingType, false);
     }
 
 
     @SuppressWarnings("unchecked")
-    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType) {
+    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType, boolean hasFullAutoParent) {
+
+        final boolean hasFullAutoParentFinal;
 
         try {
 
             if (from == null) return null;
 
-            final To to = toClass.newInstance();
+            final To to;
 
             if (from instanceof CustomMappingWrapper) {
                 CustomMappingWrapper cmo = (CustomMappingWrapper) from;
@@ -111,8 +119,27 @@ public class DomainMapper {
             MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
 
             Map<String, Function> mapping = mappingFunction.getMapping();
-            if (mappingFunction.getMappingType() == MappingType.FULL_AUTO) {
-                typeSafeCopy.copyProperties(to, from);
+            if (!hasFullAutoParent && mappingFunction.getMappingType() == MappingType.FULL_AUTO) {
+
+                //TODO move to cache
+                MapperFacade orikaMapper;
+
+                if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(from.getClass()), TypeFactory.valueOf(toClass), false)) {
+
+                    mapperFactory.classMap(from.getClass(), toClass)
+                            .byDefault().register();
+                }
+
+                orikaMapper = mapperFactory.getMapperFacade();
+
+
+                to = orikaMapper.map(from, toClass);
+
+                hasFullAutoParentFinal = true;
+
+            } else {
+                to = toClass.newInstance();
+                hasFullAutoParentFinal = hasFullAutoParent;
             }
 
             final Object finalFrom = from;
@@ -130,10 +157,10 @@ public class DomainMapper {
 
                             //If the field is collection
                             if (Collection.class.isAssignableFrom(toPropertyType)) {
-                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, mappingFunction.isParallelCollections());
+                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, mappingFunction.isParallelCollections(), hasFullAutoParentFinal);
                             } else {
 
-                                Object value = eval(toPropertyType, fromFunction, finalFrom);
+                                Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal);
 
                                 PropertyUtils.setNestedProperty(to, toPropertyName, value);
                             }
@@ -155,7 +182,7 @@ public class DomainMapper {
         }
     }
 
-    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean parallel) throws Exception {
+    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean parallel, boolean hasFullAutoParent) throws Exception {
         Field field = toClass.getDeclaredField(toPropertyName);
 
         Type type = field.getGenericType();
@@ -164,7 +191,7 @@ public class DomainMapper {
             ParameterizedType pt = (ParameterizedType) type;
             Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
 
-            Object object = eval(toPropertyType, fromFunction, finalFrom);
+            Object object = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParent);
 
             List fromList = null;
 
@@ -191,9 +218,9 @@ public class DomainMapper {
 
                 Object toValue;
                 if (parallel) {
-                    toValue = mapListParallel(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+                    toValue = mapListParallel(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.FULL_AUTO);
                 } else {
-                    toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.MIN);
+                    toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.FULL_AUTO);
                 }
 
                 PropertyUtils.setProperty(to, toPropertyName, toValue);
@@ -253,9 +280,9 @@ public class DomainMapper {
 
     @SuppressWarnings("unchecked")
 
-    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from) throws Exception {
+    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from, boolean hasFullAutoParent) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, rhs, "", MappingType.MIN) : rhs;
+        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, rhs, "", MappingType.FULL_AUTO, hasFullAutoParent) : rhs;
     }
 
     @SuppressWarnings("unchecked")
