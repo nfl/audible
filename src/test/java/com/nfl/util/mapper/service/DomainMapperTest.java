@@ -129,23 +129,11 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
             temp.setNums(n);
             Assert.assertTrue(list.getData().contains(temp));
         });
-
-        MyList list2 = dt.map(MyList.class, set, "parallel");
-        set.stream().forEach(s -> {
-            Student2 temp = new Student2();
-            temp.setFirstName(s.getName().split(" ")[0]);
-            temp.setLastName(s.getName().split(" ")[1]);
-            Numbers n = new Numbers();
-            n.setAge(s.getAge());
-            n.setGpa(s.getGpa());
-            temp.setNums(n);
-            Assert.assertTrue(list2.getData().contains(temp));
-        });
     }
 
     @Test
     public void testMinPlusAdditional() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1, "min_add", MappingType.FULL);
+        Student2 s2 = dt.map(Student2.class, s1, "min_add", MappingType.TOP_LEVEL);
         Assert.assertEquals(s2.getFirstName(), s1.getName().split(" ")[0]);
         Assert.assertEquals(s2.getLastName(), s1.getName().split(" ")[1]);
         Assert.assertEquals(s2.getNums().getAge(), s1.getAge());
@@ -155,10 +143,10 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testFullAuto() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1, MappingType.FULL_AUTO);
+        Student2 s2 = dt.map(Student2.class, s1);
         Assert.assertNotNull(s2);
 
-        s2 = dt.map(Student2.class, s1, MappingType.FULL_AUTO);
+        s2 = dt.map(Student2.class, s1);
         Assert.assertNotNull(s2);
     }
 }

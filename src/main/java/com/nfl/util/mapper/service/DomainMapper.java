@@ -40,13 +40,19 @@ public class DomainMapper {
 
     private MapperFactory mapperFactory = new DefaultMapperFactory.Builder().build();
 
+    private MappingType defaultEmbeddedMapping = MappingType.EMBEDDED; //TODO: move to config builder
+
+    private boolean autoMapUsingOrkia = true; //TODO: move to config builder
+
+    private boolean parallelProcessEmbeddedList = false; //TODO: move to config builder
+
     @Autowired
     private MappingService mappingService;
 
 
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
-        return this.mapList(toClass, list, EMPTY, MappingType.FULL);
+        return this.mapList(toClass, list, EMPTY, MappingType.TOP_LEVEL);
     }
 
 
@@ -55,7 +61,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.mapList(toClass, list, mappingName, MappingType.FULL);
+        return this.mapList(toClass, list, mappingName, MappingType.TOP_LEVEL);
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
@@ -63,7 +69,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
-        return this.mapListParallel(toClass, list, EMPTY, MappingType.FULL);
+        return this.mapListParallel(toClass, list, EMPTY, MappingType.TOP_LEVEL);
     }
 
 
@@ -72,7 +78,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.mapListParallel(toClass, list, mappingName, MappingType.FULL);
+        return this.mapListParallel(toClass, list, mappingName, MappingType.TOP_LEVEL);
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
@@ -83,7 +89,7 @@ public class DomainMapper {
 
 
     public <From, To> To map(Class<To> toClass, From from) {
-        return this.map(toClass, from, EMPTY, MappingType.FULL);
+        return this.map(toClass, from, EMPTY, MappingType.TOP_LEVEL);
     }
 
     public <From, To> To map(Class<To> toClass, From from, MappingType mappingType) {
@@ -91,7 +97,7 @@ public class DomainMapper {
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName) {
-        return this.map(toClass, from, mappingName, MappingType.FULL);
+        return this.map(toClass, from, mappingName, MappingType.TOP_LEVEL);
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
@@ -119,7 +125,7 @@ public class DomainMapper {
             MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
 
             Map<String, Function> mapping = mappingFunction.getMapping();
-            if (!hasFullAutoParent && mappingFunction.getMappingType() == MappingType.FULL_AUTO) {
+            if (!hasFullAutoParent && autoMapUsingOrkia) {
 
                 //TODO move to cache
                 MapperFacade orikaMapper;
@@ -157,7 +163,7 @@ public class DomainMapper {
 
                             //If the field is collection
                             if (Collection.class.isAssignableFrom(toPropertyType)) {
-                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, mappingFunction.isParallelCollections(), hasFullAutoParentFinal);
+                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, hasFullAutoParentFinal);
                             } else {
 
                                 Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal);
@@ -182,7 +188,7 @@ public class DomainMapper {
         }
     }
 
-    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean parallel, boolean hasFullAutoParent) throws Exception {
+    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean hasFullAutoParent) throws Exception {
         Field field = toClass.getDeclaredField(toPropertyName);
 
         Type type = field.getGenericType();
@@ -217,10 +223,10 @@ public class DomainMapper {
             } else if (isOverride && mappingService.hasMappingForClass(typeForCollection)) { //Recursively call
 
                 Object toValue;
-                if (parallel) {
-                    toValue = mapListParallel(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.FULL_AUTO);
+                if (parallelProcessEmbeddedList) {
+                    toValue = mapListParallel(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : defaultEmbeddedMapping);
                 } else {
-                    toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : MappingType.FULL_AUTO);
+                    toValue = mapList(typeForCollection, fromList, overrideMappingTypeNested != null ? overrideMappingTypeNested : defaultEmbeddedMapping);
                 }
 
                 PropertyUtils.setProperty(to, toPropertyName, toValue);
@@ -282,7 +288,7 @@ public class DomainMapper {
 
     private <From> Object eval(Class toPropertyClass, Function fromExpression, From from, boolean hasFullAutoParent) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, rhs, "", MappingType.FULL_AUTO, hasFullAutoParent) : rhs;
+        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, rhs, "", defaultEmbeddedMapping, hasFullAutoParent) : rhs;
     }
 
     @SuppressWarnings("unchecked")

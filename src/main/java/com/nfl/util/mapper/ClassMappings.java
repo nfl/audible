@@ -18,20 +18,14 @@ public class ClassMappings {
 
     private Class mappingClass;
 
-    private Map<String, Map<String, Function>> minMapping;
-    private Map<String, Map<String, Function>> fullMapping;
-    private Map<String, Map<String, Function>> additionalMapping;
-    private Map<String, Map<String, Function>> fullAutoMapping;
+    private Map<String, Map<String, Function>> embeddedMapping;
+    private Map<String, Map<String, Function>> topMapping;
     private Map<String, List<Method>> postProcessors;
 
-    private Map<String, Boolean> parallelProcessCollections;
-
     public ClassMappings(Class toClass) {
-        minMapping = new HashMap<>();
-        fullMapping = new HashMap<>();
-        additionalMapping = new HashMap<>();
-        fullAutoMapping = new HashMap<>();
-        parallelProcessCollections = new HashMap<>();
+        embeddedMapping = new HashMap<>();
+        topMapping = new HashMap<>();
+
         postProcessors = new HashMap<>();
         this.toClass = toClass;
     }
@@ -44,27 +38,16 @@ public class ClassMappings {
         this.mappingClass = mappingClass;
     }
 
-    public boolean isParallel(Class originalClass, String mappingName, MappingType type) {
-        String key = originalClass + "#" + mappingName + "#" + type;
-        return parallelProcessCollections.get(key) != null ? parallelProcessCollections.get(key) : false;
-    }
 
-    public void addMapping(Class originalClass, String mappingName, MappingType type, Map<String, Function> functionMapping, boolean parallelCollections) {
+    public void addMapping(Class originalClass, String mappingName, MappingType type, Map<String, Function> functionMapping) {
         String key = originalClass + "#" + mappingName;
         String parallelKey = key + "#" + type;
-        this.parallelProcessCollections.put(parallelKey, parallelCollections);
         switch(type) {
-            case MIN:
-                minMapping.put(key, functionMapping);
+            case EMBEDDED:
+                embeddedMapping.put(key, functionMapping);
                 break;
-            case FULL:
-                fullMapping.put(key, functionMapping);
-                break;
-            case ADDITIONAL:
-                additionalMapping.put(key, functionMapping);
-                break;
-            case FULL_AUTO:
-                fullAutoMapping.put(key, functionMapping);
+            case TOP_LEVEL:
+                topMapping.put(key, functionMapping);
                 break;
         }
     }
@@ -86,7 +69,7 @@ public class ClassMappings {
     }
 
     public Map<String, Map<String, Function>> getFull() {
-        return fullMapping;
+        return topMapping;
     }
 
     public Map<String, Function> getMapping(Class originalClass, String mappingName, MappingType type) {
@@ -96,46 +79,18 @@ public class ClassMappings {
         String key = originalClass + "#" + mappingName;
 
         switch (type) {
-            case MIN:
-                if(minMapping.containsKey(key)) {
-                    requestedMapping = minMapping.get(key);
-                } else if (fullMapping.containsKey(key)) {
-                    requestedMapping = fullMapping.get(key);
-                } else if (fullAutoMapping.containsKey(key)) {
-                    requestedMapping = fullAutoMapping.get(key);
-                } else {
-                    requestedMapping = null;
+            case EMBEDDED:
+                if(embeddedMapping.containsKey(key)) {
+                    requestedMapping = embeddedMapping.get(key);
+                } else if (topMapping.containsKey(key)) {
+                    requestedMapping = topMapping.get(key);
                 }
                 break;
-            case FULL:
-                if(fullMapping.containsKey(key)) {
-                    requestedMapping = fullMapping.get(key);
-                } else if (minMapping.containsKey(key) && additionalMapping.containsKey(key)) {
-                    requestedMapping = new HashMap<>();
-                    requestedMapping.putAll(minMapping.get(key));
-                    requestedMapping.putAll(additionalMapping.get(key));
-                } else if (fullAutoMapping.containsKey(key)) {
-                    requestedMapping = fullAutoMapping.get(key);
-                } else {
-                    requestedMapping = null;
-                }
-                break;
-            case ADDITIONAL:
-                requestedMapping = additionalMapping.get(key);
-                break;
-            case FULL_AUTO:
-                if(fullAutoMapping.containsKey(key)) {
-                    requestedMapping = fullAutoMapping.get(key);
-                } else if(fullMapping.containsKey(key)) {
-                    requestedMapping = fullMapping.get(key);
-                } else if (minMapping.containsKey(key) && additionalMapping.containsKey(key)) {
-                    requestedMapping = new HashMap<>();
-                    requestedMapping.putAll(minMapping.get(key));
-                    requestedMapping.putAll(additionalMapping.get(key));
-                } else if (fullAutoMapping.containsKey(key)) {
-                    requestedMapping = fullAutoMapping.get(key);
-                } else {
-                    requestedMapping = null;
+            case TOP_LEVEL:
+                if(topMapping.containsKey(key)) {
+                    requestedMapping = topMapping.get(key);
+                } else if (embeddedMapping.containsKey(key)) {
+                    requestedMapping = embeddedMapping.get(key);
                 }
                 break;
         }

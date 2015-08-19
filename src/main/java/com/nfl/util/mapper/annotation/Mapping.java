@@ -13,12 +13,10 @@ import com.nfl.util.mapper.MappingType;
 @Target({ElementType.METHOD})
 public @interface Mapping {
 
-	MappingType type() default MappingType.FULL;
+	MappingType type() default MappingType.TOP_LEVEL;
 	
 	String name() default "";
 	
 	Class originalClass();
-
-	boolean parallelProcessCollections() default false;
 
 }

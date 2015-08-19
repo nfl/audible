@@ -3,7 +3,7 @@ package com.nfl.util.mapper;
 public final class CustomMappingWrapper {
 
     private Object object;
-    private MappingType mappingType = MappingType.FULL;
+    private MappingType mappingType = MappingType.TOP_LEVEL;
     private String mappingName = "";
 
     public Object getObject() {

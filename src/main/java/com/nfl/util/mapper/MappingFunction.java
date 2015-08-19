@@ -9,7 +9,6 @@ import java.util.function.Function;
 public class MappingFunction {
     MappingType mappingType;
     Map<String, Function> mapping;
-    boolean parallelCollections;
 
     public MappingType getMappingType() {
         return mappingType;
@@ -27,11 +26,4 @@ public class MappingFunction {
         this.mapping = mapping;
     }
 
-    public boolean isParallelCollections() {
-        return parallelCollections;
-    }
-
-    public void setParallelCollections(boolean parallelCollections) {
-        this.parallelCollections = parallelCollections;
-    }
 }

@@ -70,7 +70,7 @@ public class MappingService implements ApplicationContextAware {
             for (Method method : mappingClass.getMethods()) {
                 if (method.isAnnotationPresent(Mapping.class)) {
                     Mapping mapping = method.getAnnotation(Mapping.class);
-                    boolean parallelCollections = mapping.parallelProcessCollections();
+
                     MappingType type = mapping.type();
                     Class originalClass = mapping.originalClass();
                     String name = mapping.name();
@@ -88,7 +88,7 @@ public class MappingService implements ApplicationContextAware {
 
                     }
 
-                    value.addMapping(originalClass, name, type, functionMapping, parallelCollections);
+                    value.addMapping(originalClass, name, type, functionMapping);
                 } else if (method.isAnnotationPresent(PostProcessor.class)) {
                     PostProcessor postProcessor = method.getAnnotation(PostProcessor.class);
 
@@ -142,7 +142,6 @@ public class MappingService implements ApplicationContextAware {
 
         mappingFunction.setMapping(classMappings.getMapping(originalClass, name, type));
         mappingFunction.setMappingType(type);
-        mappingFunction.setParallelCollections(classMappings.isParallel(originalClass, name, type));
 
 
         return mappingFunction;
