@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 /**
  * Created by chi.kim on 6/26/15.
  * PostProcessor is called after the transformation
- * It should have argument of types, (toClass, fromClasses...)
+ * It should have argument of types, (toClass, fromClass)
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})

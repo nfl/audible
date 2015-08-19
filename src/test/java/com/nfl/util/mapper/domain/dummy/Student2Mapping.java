@@ -31,11 +31,13 @@ public class Student2Mapping {
     public Map<String, Function<Student1, ?>> getMapping() {
         Map<String, Function<Student1, ?>> map = new HashMap<>();
         map.put("firstName", (Student1 s) -> s.getName().split(" ")[0]);
-        try {
-            map.put("lastName", (Student1 s) -> s.getName().split(" ")[1]);
-        } catch (Exception e) {
-            map.put("lastName", (Student1 s) -> null);
-        }
+        map.put("lastName", (Student1 s) -> {
+            try {
+                return s.getName().split(" ")[1];
+            } catch (Exception e) {
+                return null;
+            }
+        });
         map.put("nums.age", (Student1 s) -> s.getAge());
         map.put("nums.gpa", (Student1 s) -> s.getGpa());
 
@@ -46,11 +48,13 @@ public class Student2Mapping {
     public Map<String, Function<Student1, ?>> reverseMapping() {
         Map<String, Function<Student1, ?>> map = new HashMap<>();
         map.put("lastName", (Student1 s) -> s.getName().split(" ")[0]);
-        try {
-            map.put("firstName", (Student1 s) -> s.getName().split(" ")[1]);
-        } catch (Exception e) {
-            map.put("firstName", (Student1 s) -> null);
-        }
+        map.put("firstName", (Student1 s) -> {
+            try {
+                return s.getName().split(" ")[1];
+            } catch (Exception e) {
+                return null;
+            }
+        });
         map.put("nums.age", (Student1 s) -> s.getAge());
         map.put("nums.gpa", (Student1 s) -> s.getGpa());
 
@@ -61,11 +65,13 @@ public class Student2Mapping {
     public Map<String, Function<Student1, ?>> minMapping() {
         Map<String, Function<Student1, ?>> map = new HashMap<>();
         map.put("firstName", (Student1 s) -> s.getName().split(" ")[0]);
-        try {
-            map.put("lastName", (Student1 s) -> s.getName().split(" ")[1]);
-        } catch (Exception e) {
-            map.put("lastName", (Student1 s) -> null);
-        }
+        map.put("lastName", (Student1 s) -> {
+            try {
+                return s.getName().split(" ")[1];
+            } catch (Exception e) {
+                return null;
+            }
+        });
 
         return map;
     }
