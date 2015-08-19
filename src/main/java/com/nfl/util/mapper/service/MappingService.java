@@ -31,41 +31,26 @@ import java.util.function.Function;
 @Service
 public class MappingService implements ApplicationContextAware {
 
-    @Value("${domain.mapper.package:com.nfl}")
-    private String domainMapperPackage;
-
-    private Map<Class, ClassMappings> cacheMap;
+    private Map<Class, ClassMappings> cacheMap = new HashMap<>();
 
     // class -> object of corresponding mapping class
-    private Map<Class, Object> mappingInstanceMap;
+    private Map<Class, Object> mappingInstanceMap = new HashMap<>();
 
     private ApplicationContext applicationContext;
 
-    public MappingService() {
-        cacheMap = new HashMap<>();
-        mappingInstanceMap = new HashMap<>();
-    }
 
     @PostConstruct
-    void initializeCacheMap() throws Exception {
-        loadClasses();
-    }
-
     void loadClasses() throws Exception {
-        ClassPathScanningCandidateComponentProvider provider = new ClassPathScanningCandidateComponentProvider(false);
-        // Filter to include only classes that have a particular annotation.
-        provider.addIncludeFilter(new AnnotationTypeFilter(MappingTo.class));
-        // Find classes in the given package (or subpackages)
-        Set<BeanDefinition> beans = provider.findCandidateComponents(domainMapperPackage);
+        Map<String,Object> beansWithAnnotation = applicationContext.getBeansWithAnnotation(MappingTo.class);
 
-        for (BeanDefinition object : beans) {
-            Class mappingClass = Class.forName(object.getBeanClassName());
+        for (Object object : beansWithAnnotation.values()) {
+            Class mappingClass = object.getClass();
             MappingTo mappingTo = (MappingTo) mappingClass.getAnnotation(MappingTo.class);
             Class toClass = mappingTo.value();
             ClassMappings value = new ClassMappings(toClass);
             value.setMappingClass(mappingClass);
-            Object mappingObject = applicationContext.getBean(mappingClass);
-            mappingInstanceMap.put(toClass, mappingObject);
+
+            mappingInstanceMap.put(toClass, object);
 
             for (Method method : mappingClass.getMethods()) {
                 if (method.isAnnotationPresent(Mapping.class)) {
@@ -74,7 +59,7 @@ public class MappingService implements ApplicationContextAware {
                     MappingType type = mapping.type();
                     Class originalClass = mapping.originalClass();
                     String name = mapping.name();
-                    Map<String, Function> functionMapping = (Map<String, Function>) method.invoke(mappingObject);
+                    Map<String, Function> functionMapping = (Map<String, Function>) method.invoke(object);
 
                     final Object to = toClass.newInstance();
                     for (Map.Entry<String, Function> entry : functionMapping.entrySet()) {

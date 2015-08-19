@@ -13,7 +13,7 @@ import com.nfl.util.mapper.MappingType;
 @Target({ElementType.METHOD})
 public @interface Mapping {
 
-	MappingType type() default MappingType.TOP_LEVEL;
+	MappingType type() default MappingType.NORMAL;
 	
 	String name() default "";
 	

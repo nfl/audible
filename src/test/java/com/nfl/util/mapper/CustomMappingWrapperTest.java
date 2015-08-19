@@ -11,10 +11,10 @@ import static com.nfl.util.mapper.CustomMappingWrapper.*;
 public class CustomMappingWrapperTest {
 
     public void testCustomMappingWrapper() {
-        CustomMappingWrapper cmw = customMapping(new String("a")).withName("mappingName").withType(MappingType.TOP_LEVEL);
+        CustomMappingWrapper cmw = customMapping(new String("a")).withName("mappingName").withType(MappingType.NORMAL);
 
         Assert.assertEquals(cmw.getMappingName(), "mappingName");
-        Assert.assertEquals(cmw.getMappingType(), MappingType.TOP_LEVEL);
+        Assert.assertEquals(cmw.getMappingType(), MappingType.NORMAL);
         Assert.assertEquals(cmw.getObject(), "a");
     }
 }

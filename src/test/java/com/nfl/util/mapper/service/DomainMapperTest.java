@@ -133,7 +133,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testMinPlusAdditional() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1, "min_add", MappingType.TOP_LEVEL);
+        Student2 s2 = dt.map(Student2.class, s1, "min_add", MappingType.NORMAL);
         Assert.assertEquals(s2.getFirstName(), s1.getName().split(" ")[0]);
         Assert.assertEquals(s2.getLastName(), s1.getName().split(" ")[1]);
         Assert.assertEquals(s2.getNums().getAge(), s1.getAge());

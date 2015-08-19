@@ -1,6 +1,7 @@
 package com.nfl.util.mapper;
 
 import com.nfl.util.mapper.service.DomainMapper;
+import com.nfl.util.mapper.service.DomainMapperBuilder;
 import com.nfl.util.mapper.service.MappingService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -20,7 +21,7 @@ public class ApplicationTestConfig {
 
     @Bean
     public DomainMapper domainMapper() {
-        return new DomainMapper();
+        return new DomainMapperBuilder().setAutoMapUsingOrkia(true).setDefaultEmbeddedMapping(MappingType.EMBEDDED).setParallelProcessEmbeddedList(true).build();
     }
 
 }

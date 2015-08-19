@@ -3,8 +3,6 @@ package com.nfl.util.mapper.service;
 import com.nfl.util.mapper.CustomMappingWrapper;
 import com.nfl.util.mapper.MappingFunction;
 import com.nfl.util.mapper.MappingType;
-import com.nfl.util.mapper.annotation.Mapping;
-import com.nfl.util.mapper.annotation.PostProcessor;
 import ma.glasnost.orika.MapperFacade;
 import ma.glasnost.orika.MapperFactory;
 import ma.glasnost.orika.impl.DefaultMapperFactory;
@@ -49,10 +47,14 @@ public class DomainMapper {
     @Autowired
     private MappingService mappingService;
 
-
+    DomainMapper(DomainMapperBuilder builder) {
+        this.defaultEmbeddedMapping = builder.getDefaultEmbeddedMapping();
+        this.autoMapUsingOrkia = builder.isAutoMapUsingOrkia();
+        this.parallelProcessEmbeddedList = builder.isParallelProcessEmbeddedList();
+    }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
-        return this.mapList(toClass, list, EMPTY, MappingType.TOP_LEVEL);
+        return this.mapList(toClass, list, EMPTY, MappingType.NORMAL);
     }
 
 
@@ -61,7 +63,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.mapList(toClass, list, mappingName, MappingType.TOP_LEVEL);
+        return this.mapList(toClass, list, mappingName, MappingType.NORMAL);
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
@@ -69,7 +71,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
-        return this.mapListParallel(toClass, list, EMPTY, MappingType.TOP_LEVEL);
+        return this.mapListParallel(toClass, list, EMPTY, MappingType.NORMAL);
     }
 
 
@@ -78,7 +80,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName) {
-        return this.mapListParallel(toClass, list, mappingName, MappingType.TOP_LEVEL);
+        return this.mapListParallel(toClass, list, mappingName, MappingType.NORMAL);
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
@@ -89,7 +91,7 @@ public class DomainMapper {
 
 
     public <From, To> To map(Class<To> toClass, From from) {
-        return this.map(toClass, from, EMPTY, MappingType.TOP_LEVEL);
+        return this.map(toClass, from, EMPTY, MappingType.NORMAL);
     }
 
     public <From, To> To map(Class<To> toClass, From from, MappingType mappingType) {
@@ -97,7 +99,7 @@ public class DomainMapper {
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName) {
-        return this.map(toClass, from, mappingName, MappingType.TOP_LEVEL);
+        return this.map(toClass, from, mappingName, MappingType.NORMAL);
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
@@ -308,5 +310,15 @@ public class DomainMapper {
 
     }
 
+    public MappingType getDefaultEmbeddedMapping() {
+        return defaultEmbeddedMapping;
+    }
 
+    public boolean isAutoMapUsingOrkia() {
+        return autoMapUsingOrkia;
+    }
+
+    public boolean isParallelProcessEmbeddedList() {
+        return parallelProcessEmbeddedList;
+    }
 }

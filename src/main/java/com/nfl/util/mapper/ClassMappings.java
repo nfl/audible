@@ -46,7 +46,7 @@ public class ClassMappings {
             case EMBEDDED:
                 embeddedMapping.put(key, functionMapping);
                 break;
-            case TOP_LEVEL:
+            case NORMAL:
                 topMapping.put(key, functionMapping);
                 break;
         }
@@ -86,7 +86,7 @@ public class ClassMappings {
                     requestedMapping = topMapping.get(key);
                 }
                 break;
-            case TOP_LEVEL:
+            case NORMAL:
                 if(topMapping.containsKey(key)) {
                     requestedMapping = topMapping.get(key);
                 } else if (embeddedMapping.containsKey(key)) {
