@@ -1,15 +1,13 @@
 #Audible
-***
+
 
 ##Introduction
 
-Audible is a simple mapper library that converts a POJO to another POJO using Java 8 lambdas to implement the mapping logic. It depends on Java 8 and Spring. Audible achieves this by promoting DRY methodology and self-documenting code. The resulting code is easy to maintain and promotes reuse.
+Audible is a mapper library that converts a POJO to another POJO using Java 8 lambdas to implement the mapping logic. It depends on Java 8 and Spring and uses [Orika](https://github.com/orika-mapper/orika) to support default mapping. 
 
 ###Why Another Mapper?
 
-There are other POJO mapping libraries out there such as Dozer (http://dozer.sourceforge.net/) and Apache BeanUtils (http://commons.apache.org/proper/commons-beanutils/). Audible provides the ability to have complete control and flexibility over the mappings without sacrificing maintainability or ease of use. Although it may take more work to configure and setup the mappings than competing services it allows for a much higher degree of control and modularity of the mappings.
-
-The main benefit of using Audible instead of writing manual conversions is that nested mapping invocation is automatically done by Audible. There is also a default mapper that uses reflection to map properties with the same name. Audible combines the flexibility of manual conversions with some of the convenience of other mapping libraries.
+There are other POJO mapping libraries out there such as [Dozer](http://dozer.sourceforge.net/), [Orika](https://github.com/orika-mapper/orika), and [Apache BeanUtils](http://commons.apache.org/proper/commons-beanutils/). One of the assumptions that these libraries assume is that the source domain contains all necessary information to convert to the target domain. If you need to call external services such as retrieving additional information from a database during the conversion process, you would instead have to aggregate it into the source domain before you can use the mapper library. Audible provides the ability to have complete control including calling additional service methods during the conversion. You can also define multiple case-specific mappings for a single type. You can also define mappings for different source domains to one target domain. Audible combines the flexibility of manual conversions with some of the convenience of other mapping libraries.
 
 |       | Audible   | Dozer   | BeanUtils   |
 |-------|:---------:|:-------:|:-----------:|
