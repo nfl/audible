@@ -51,17 +51,6 @@ public class ApplicationConfig {
 }
 ```
 
-###Main.java
-```java
-@ContextConfiguration(classes = {ApplicationConfig.class})
-public class Main() {
-
-	@AutoWired
-	DomainMapper dm;
-	
-	...
-}
-```
 
 ##Annotations
 There are three annotations that are used to denote a mapping of one class to another.
@@ -182,7 +171,10 @@ public class ToStudentMapping {
         //Ability to call any other Spring managed service bean
         map.put("ssn", (FromStudent s) -> ssnService.findByName(s.getName()));
         
-        map.put("courses", (FromStudent s) -> s.getCourses());
+        //Note that you are simply passing List<FromCourse>.  Mapping will automatically convert them to List<ToCourse>
+        map.put("courses", (FromStudent s) -> s.getCourses()); 
+
+        //Note that you are simply passing FromAddress. Mapping will automatically convert it to ToAddress type.
         map.put("address", (FromStudent s) -> s.getAddress();
         return map;
     }
@@ -386,7 +378,7 @@ public class ToStudentMapping {
 
 ###Main.java
 ```java
-public class Main() {
+public class Main {
 
 	@AutoWired
 	DomainMapper dm;
