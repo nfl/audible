@@ -40,7 +40,7 @@ public class DomainMapper {
 
     private MappingType defaultEmbeddedMapping = MappingType.EMBEDDED; //TODO: move to config builder
 
-    private boolean autoMapUsingOrkia = true; //TODO: move to config builder
+    private boolean autoMapUsingOrika = true; //TODO: move to config builder
 
     private boolean parallelProcessEmbeddedList = false; //TODO: move to config builder
 
@@ -49,7 +49,7 @@ public class DomainMapper {
 
     DomainMapper(DomainMapperBuilder builder) {
         this.defaultEmbeddedMapping = builder.getDefaultEmbeddedMapping();
-        this.autoMapUsingOrkia = builder.isAutoMapUsingOrika();
+        this.autoMapUsingOrika = builder.isAutoMapUsingOrika();
         this.parallelProcessEmbeddedList = builder.isParallelProcessEmbeddedList();
     }
 
@@ -67,7 +67,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
-        return list.stream().map(o -> doMapping(toClass, o, mappingName, mappingType, false)).collect(Collectors.toList());
+        return list.stream().map(o -> doMapping(toClass, o, mappingName, mappingType, false, null)).collect(Collectors.toList());
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list) {
@@ -84,7 +84,7 @@ public class DomainMapper {
     }
 
     public <From, To> List<To> mapListParallel(Class<To> toClass, Collection<From> list, String mappingName, MappingType mappingType) {
-        return list.parallelStream().map(o -> doMapping(toClass, o, mappingName, mappingType, false)).collect(Collectors.toList());
+        return list.parallelStream().map(o -> doMapping(toClass, o, mappingName, mappingType, false, null)).collect(Collectors.toList());
     }
 
 
@@ -103,12 +103,12 @@ public class DomainMapper {
     }
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
-        return this.doMapping(toClass, from, mappingName, mappingType, false);
+        return this.doMapping(toClass, from, mappingName, mappingType, false, null);
     }
 
 
     @SuppressWarnings("unchecked")
-    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType, boolean hasFullAutoParent) {
+    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType, boolean hasFullAutoParent, To nonFinalTo) {
 
         final boolean hasFullAutoParentFinal;
 
@@ -116,7 +116,7 @@ public class DomainMapper {
 
             if (from == null) return null;
 
-            final To to;
+            //final To to;
 
             if (from instanceof CustomMappingWrapper) {
                 CustomMappingWrapper cmo = (CustomMappingWrapper) from;
@@ -127,7 +127,7 @@ public class DomainMapper {
             MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
 
             Map<String, Function> mapping = mappingFunction.getMapping();
-            if (!hasFullAutoParent && autoMapUsingOrkia) {
+            if (!hasFullAutoParent && autoMapUsingOrika) {
 
                 //TODO move to cache
                 MapperFacade orikaMapper;
@@ -141,17 +141,20 @@ public class DomainMapper {
                 orikaMapper = mapperFactory.getMapperFacade();
 
 
-                to = orikaMapper.map(from, toClass);
+                nonFinalTo = orikaMapper.map(from, toClass);
 
                 hasFullAutoParentFinal = true;
 
+            } else if (nonFinalTo == null){
+                nonFinalTo = toClass.newInstance();
+                hasFullAutoParentFinal = hasFullAutoParent;
             } else {
-                to = toClass.newInstance();
                 hasFullAutoParentFinal = hasFullAutoParent;
             }
 
             final Object finalFrom = from;
 
+            final To to = nonFinalTo;
 
             assert mapping != null;
 
@@ -168,7 +171,7 @@ public class DomainMapper {
                                 handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, hasFullAutoParentFinal);
                             } else {
 
-                                Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal);
+                                Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal, to, toPropertyName);
 
                                 PropertyUtils.setNestedProperty(to, toPropertyName, value);
                             }
@@ -199,7 +202,7 @@ public class DomainMapper {
             ParameterizedType pt = (ParameterizedType) type;
             Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
 
-            Object object = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParent);
+            Object object = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParent, to, toPropertyName);
 
             List fromList = null;
 
@@ -288,9 +291,16 @@ public class DomainMapper {
 
     @SuppressWarnings("unchecked")
 
-    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from, boolean hasFullAutoParent) throws Exception {
+    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from, boolean hasFullAutoParent, Object to, String toPropertyName) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
-        return (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) ? doMapping(toPropertyClass, rhs, "", defaultEmbeddedMapping, hasFullAutoParent) : rhs;
+
+        if (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) {
+
+            Object toProperty = PropertyUtils.getProperty(to, toPropertyName);
+
+            return doMapping(toPropertyClass, rhs, "", defaultEmbeddedMapping, hasFullAutoParent, toProperty);
+        }
+        else return rhs;
     }
 
     @SuppressWarnings("unchecked")
@@ -315,7 +325,7 @@ public class DomainMapper {
     }
 
     public boolean isAutoMapUsingOrika() {
-        return autoMapUsingOrkia;
+        return autoMapUsingOrika;
     }
 
     public boolean isParallelProcessEmbeddedList() {

@@ -2,6 +2,12 @@ package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.ApplicationTestConfig;
 import com.nfl.util.mapper.MappingType;
+import com.nfl.util.mapper.domain.complete.source.Animal;
+import com.nfl.util.mapper.domain.complete.source.FromFriend;
+import com.nfl.util.mapper.domain.complete.source.FromJob;
+import com.nfl.util.mapper.domain.complete.source.FromPerson;
+import com.nfl.util.mapper.domain.complete.target.ToFriend;
+import com.nfl.util.mapper.domain.complete.target.ToPerson;
 import com.nfl.util.mapper.domain.dummy.MyList;
 import com.nfl.util.mapper.domain.dummy.Numbers;
 import com.nfl.util.mapper.domain.dummy.Student1;
@@ -18,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by chi.kim on 6/2/15.
@@ -27,7 +34,7 @@ import java.util.List;
 public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Autowired
-    private DomainMapper dt;
+    private DomainMapper dm;
 
     private Student1 s1;
 
@@ -37,6 +44,8 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     private HashSet<Student1> set;
 
+    private FromPerson fp;
+
     @BeforeTest
     public void setUp() {
         s1 = new Student1();
@@ -44,6 +53,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         s1.setName("Tom Brady");
         s1.setAge(21);
         s1.setGpa(3.99);
+        s1.setId(1);
 
         s1List = new ArrayList<>();
 
@@ -61,11 +71,62 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         set.add(s1);
         set.add(student);
 
+        fp = new FromPerson();
+
+        FromJob fj = new FromJob();
+        fj.setAnnualPay(125000);
+        fj.setPosition("Associate Engineer");
+        fj.setYearsExperience(5);
+
+        FromFriend friend1 = new FromFriend();
+        friend1.setName("Chi");
+        friend1.setAge(35);
+        friend1.setFavoriteColor("Red");
+
+        Set<Animal> pets = new HashSet<>();
+        Animal cat = new Animal();
+        Animal dog = new Animal();
+        cat.setAge(3);
+        cat.setKind("Cat");
+        cat.setName("Sammy");
+        dog.setAge(5);
+        dog.setKind("Dog");
+        dog.setName("Dexter");
+
+        pets.add(cat);
+        pets.add(dog);
+
+        fp.setAge(21);
+        fp.setName("Jackson");
+        fp.setWeightLbs(185);
+        fp.setHeightInches(73);
+        fp.setJob(fj);
+        fp.addFriend(friend1);
+        fp.setPets(pets);
+    }
+
+    @Test
+    public void testEmbedded() {
+        ToPerson tp = dm.map(ToPerson.class, fp);
+        Assert.assertEquals(tp.getJob().getYearsExperience(), fp.getJob().getYearsExperience());
+        Assert.assertEquals(tp.getJob().getTitle(), fp.getJob().getPosition());
+    }
+
+    @Test
+    public void testCollectionMapping() {
+        ToPerson tp = dm.map(ToPerson.class, fp);
+        for(ToFriend tf: tp.getFriends()) {
+            FromFriend temp = new FromFriend();
+            temp.setName(tf.getName());
+            temp.setAge(tf.getAge());
+            temp.setFavoriteColor(tf.getFavoriteColor());
+            Assert.assertTrue(fp.getFriends().contains(temp));
+        }
     }
 
     @Test
     public void testDomainTransformer() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1);
+        Student2 s2 = dm.map(Student2.class, s1);
         Assert.assertEquals(s1.getName(), s2.getFirstName() + " " + s2.getLastName());
         Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
         Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
@@ -73,7 +134,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testNamedMapping() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1, "reverse");
+        Student2 s2 = dm.map(Student2.class, s1, "reverse");
         Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
         Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
         Assert.assertEquals(s1.getGpa(), s2.getNums().getGpa());
@@ -84,7 +145,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         for (int j = 0; j < 20; j++) {
             Instant start = Instant.now();
             for (int i = 0; i < 1000000; i++) {
-                dt.map(Student2.class, s1);
+                dm.map(Student2.class, s1);
             }
             Instant stop = Instant.now();
 
@@ -95,7 +156,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
     @Test
     public void testNamedListMapping() throws Exception {
 
-        List<Student2> s2List = dt.mapList(Student2.class, s1List, "reverse");
+        List<Student2> s2List = dm.mapList(Student2.class, s1List, "reverse");
 
         s2List.stream().forEach(s2 -> {
             Assert.assertEquals(s1.getName(), s2.getLastName() + " " + s2.getFirstName());
@@ -107,7 +168,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
     @Test
     public void testListMapping() throws Exception {
 
-        List<Student2> s2List = dt.mapList(Student2.class, s1List);
+        List<Student2> s2List = dm.mapList(Student2.class, s1List);
 
         s2List.parallelStream().forEach(s2 -> {
             Assert.assertEquals(s1.getName(), s2.getFirstName() + " " + s2.getLastName());
@@ -118,7 +179,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testInnerCollections() throws Exception {
-        MyList list = dt.map(MyList.class, set);
+        MyList list = dm.map(MyList.class, set);
         set.stream().forEach(s -> {
             Student2 temp = new Student2();
             temp.setFirstName(s.getName().split(" ")[0]);
@@ -133,20 +194,19 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Test
     public void testMinPlusAdditional() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1, "min_add", MappingType.NORMAL);
+        Student2 s2 = dm.map(Student2.class, s1, "min_add", MappingType.NORMAL);
         Assert.assertEquals(s2.getFirstName(), s1.getName().split(" ")[0]);
         Assert.assertEquals(s2.getLastName(), s1.getName().split(" ")[1]);
         Assert.assertEquals(s2.getNums().getAge(), s1.getAge());
         Assert.assertEquals(s2.getNums().getGpa(), s1.getGpa());
     }
 
-
     @Test
     public void testFullAuto() throws Exception {
-        Student2 s2 = dt.map(Student2.class, s1);
+        Student2 s2 = dm.map(Student2.class, s1);
         Assert.assertNotNull(s2);
 
-        s2 = dt.map(Student2.class, s1);
+        s2 = dm.map(Student2.class, s1);
         Assert.assertNotNull(s2);
     }
 }

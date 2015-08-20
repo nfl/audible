@@ -46,7 +46,7 @@ public class Student2 {
     }
 
     public String toString() {
-        return "[firstName: " + firstName + ", lastName: " + lastName + ", Nums: " + nums.toString() + "]";
+        return "[firstName: " + firstName + ", lastName: " + lastName + ", Nums: " + nums.toString() + ", id: " + id + "]";
     }
 
     @Override

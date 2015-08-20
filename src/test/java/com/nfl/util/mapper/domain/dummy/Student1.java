@@ -46,6 +46,7 @@ public class Student1 {
     }
 
     public String toString() {
-        return "[name: " + name + ", age: " + age + ", gpa: " +  gpa + "]";
+        return "[name: " + name + ", age: " + age + ", gpa: " +  gpa + ", id: " + id +"]";
     }
+
 }

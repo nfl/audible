@@ -67,7 +67,7 @@ public class MappingService implements ApplicationContextAware {
                             PropertyUtils.setNestedProperty(to, entry.getKey(), null);
                         } catch (NoSuchMethodException e) {
                             throw new RuntimeException("Invalid Mapping in " + mappingClass.getName() + "." + method.getName() + ": Cannot set field '" + entry.getKey() + "' in class " + toClass.getName());
-                        } catch (NullPointerException e) {
+                        } catch (IllegalArgumentException e) {
                             //Do nothing setting nulls on primitives //TODO: Fix
                         }
 
