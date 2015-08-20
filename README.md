@@ -26,7 +26,7 @@ There are other POJO mapping libraries out there such as [Dozer](http://dozer.so
 
 In order to configure this service first create a Spring configuration class like the one shown. All classes that are annotated with `@MappingTo` should be in your Spring context. In addition `MappingService` and `DomainMapper` should be defined as Spring Beans
 
-###[Example] ApplicationConfig.java
+###<a name="config-example"></a>[Example] ApplicationConfig.java
 ```java
 import com.nfl.util.mapper.service.DomainMapper;
 import com.nfl.util.mapper.service.MappingService;
@@ -42,7 +42,10 @@ public class ApplicationConfig {
 
     @Bean
     public DomainMapper domainMapper() {
-        return new DomainMapper();
+        return new DomainMapperBuilder().setAutoMapUsingOrkia(true)
+        								.setDefaultEmbeddedMapping(MappingType.EMBEDDED)
+        								.setParallelProcessEmbeddedList(true)
+        								.build();
     }
 
 }
@@ -72,17 +75,13 @@ The first is the `@MappingTo` annotation takes one parameter designating the cla
 The second annotation is the `@Mapping` annotation. It is used on the individual methods within the mapping class that differ based on the parameters supplied to the annotation. The parameters this annotation takes are `type`, `name`, `originalClass`, and `parallelCollections`.
 
 * `type`: The type of the mapping, it is a value of the enum `MappingType` with the following possible values:
-	* `FULL`
-	* `MIN`
-	* `ADDITIONAL`
-	* `FULL_AUTO`
+	* `NORMAL`
+	* `EMBEDDED`
 	
-	The default value is `MappingType.FULL`. 
+	The default value is `MappingType.NORMAL`. When invoking a mapping using the `DomainMapper` object it will by default look for a mapping with type `MappingType.NORMAL`. When the mapper is mapping embedded objects, that is objects within an object, it will default to looking for a mapping with type `MappingType.EMBEDDED`. If an `EMBEDDED` mapping is not found it will then use the `NORMAL` mapping. If neither mapping is present then it will throw an exeption
 	
-	`MappingType.FULL_AUTO` is a special type of mapping with it's own unique and helpful behavior. When a `FULL_AUTO` mapping is used the mapper will automatically, via reflection, map fields of the two objects that share the same name and type. It will then take the mapping provided in the user-created definition and override any specified fields using this custom logic.
 * `name`: The name of the mapping, it is represented as a `String`. It does not need to be unique but there should be a unique pair of `originalClass` and `name`. The default value is the empty string `""`.
 * `originalClass`: The class of the object that is the source of the mapping. This is a required value.
-* `parallelCollections`: A boolean value telling whether inner-collections, that is fields of the `originalClass` which implement the `Collection` interface, should be copied in parallel or sequentially. Things to consider when setting this parameter include speed and other issues related to concurrency. The default value is `false`.
 
 The method with the `@Mapping` annotation should have the following signature: `public Map<String, java.util.Function<toClass, ?>> funcName()`
 One entry in the Map corresponds to a mapping for one field in the destination object. The keys in the map are the names of the setters of the desintation object. The values of the map can be defined with lambda expressions that takes in the source object as the parameter.
@@ -92,7 +91,7 @@ One entry in the Map corresponds to a mapping for one field in the destination o
 @MappingTo(ToStudent.class)
 public class ToStudentMapping {
 
-    @Mapping(type = MappingType.FULL, originalClass = FromStudent.class)
+    @Mapping(originalClass = FromStudent.class)
     public Map<String, Function<FromStudent, ?>> getMapping() {
         Map<String, Function<FromStudent, ?>> map = new HashMap<>();
         map.put("firstName", (FromStudent s) -> s.getName().split(" ")[0]);
@@ -120,7 +119,7 @@ Modify your `toClass` object in this method.
 @MappingTo(ToStudent.class)
 public class ToStudentMapping {
 
-    @Mapping(type = MappingType.FULL, originalClass = FromStudent.class)
+    @Mapping(originalClass = FromStudent.class)
     public Map<String, Function<FromStudent, ?>> getMapping() {
         ...
     }
@@ -134,7 +133,26 @@ public class ToStudentMapping {
 }
 ```
 
-##DomainMapper.map Function
+##DomainMapper
+
+###Builder
+You should use the provided DomainMapperBuilder class to create and a configure your DomainMapper. An example usage of the builder (as seen in the [example](#config-example)) is as follows: 
+
+```java
+DomainMapperBuilder().setAutoMapUsingOrika(true)
+					 .setDefaultEmbeddedMapping(MappingType.EMBEDDED)
+					 .setParallelProcessEmbeddedList(true)
+					 .build();
+```
+
+The three methods in the builder class that you need to be concerned with are:
+
+* `setAutoMapUsingOrika(boolean autoMapUsingOrika)`: a value of `true` indicates that the mapper will automatically map compatible fields with the same name without having the need for a defined mapping (Default value: `true`)
+* `setDefaultEmbeddedMapping(MappingType defaultEmbeddedMapping)`: sets the default mapping type for embedded objects, that is objects within other objects (Default value: `MappingType.EMBEDDED`)
+* `setParallelProcessEmbeddedList(boolean parallelProcessEmbeddedList)`: a value of `true` indicates that when mapping embedded lists, it will do so concurrently instead of sequentially (Default value: `false`)
+
+
+###DomainMapper.map Function
 In order to perform the mapping from one object to another an instance of the `DomainMapper` class is used. The primary method used in mapping an object is `DomainMapper.map` which takes between two and four arguments. The method signatures are as follows:
 
 * `public <From, To> To map(Class<To> toClass, From from)`
@@ -142,7 +160,7 @@ In order to perform the mapping from one object to another an instance of the `D
 * `public <From, To> To map(Class<To> toClass, From from, String mappingName)`
 * `public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType)`
 
-If the `mappingType` parameter is not present it will default to a value of `MappingType.FULL`, if the `mappingName` parameter is not present it will default to the empty string `""`. If the `mappingType` is `MappingType.FULL` and a full mapping is not found, it will then search for mappings with `MappingType.MIN` and `MappingType.ADDITIONAL` and combine them only if both are found.
+If the `mappingType` parameter is not present it will default to a value of `MappingType.NORMAL`, if the `mappingName` parameter is not present it will default to the empty string `""`.
 
 
 ##Simple Mapping Example
@@ -156,7 +174,7 @@ public class ToStudentMapping {
    @Autowired
    private SSNService ssnService;
 
-   @Mapping(type = MappingType.FULL, originalClass = FromStudent.class)
+   @Mapping(originalClass = FromStudent.class)
     public Map<String, Function<FromStudent, ?>> getMapping() {
         Map<String, Function<FromStudent, ?>> map = new HashMap<>();
         map.put("firstName", (FromStudent s) -> s.getName().split(" ")[0]);
@@ -348,7 +366,7 @@ public class Driver {
 @MappingTo(ToStudent.class)
 public class ToStudentMapping {
 
-    @Mapping(type = MappingType.FULL, originalClass = FromStudent.class, name = "reverse")
+    @Mapping(originalClass = FromStudent.class, name = "reverse")
     public Map<String, Function<FromStudent, ?>> reverseMapping() {
         Map<String, Function<FromStudent, ?>> map = new HashMap<>();
         map.put("lastName", (FromStudent s) -> s.getName().split(" ")[0]);
@@ -382,8 +400,6 @@ public class Main() {
 		Student toStudent = dm.map(ToStudent.class, fromStudent, "reverseName");
 		//toStudent.getFirstName() == "Brady"
 		//toStudent.getLastName() == "Tom"
-		//toStudent.getNums.getAge() == 38
-		//toStudent.getNums.getGpa() == 4.0
 	}
 }
 ```

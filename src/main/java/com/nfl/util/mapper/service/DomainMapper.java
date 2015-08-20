@@ -49,7 +49,7 @@ public class DomainMapper {
 
     DomainMapper(DomainMapperBuilder builder) {
         this.defaultEmbeddedMapping = builder.getDefaultEmbeddedMapping();
-        this.autoMapUsingOrkia = builder.isAutoMapUsingOrkia();
+        this.autoMapUsingOrkia = builder.isAutoMapUsingOrika();
         this.parallelProcessEmbeddedList = builder.isParallelProcessEmbeddedList();
     }
 
@@ -314,7 +314,7 @@ public class DomainMapper {
         return defaultEmbeddedMapping;
     }
 
-    public boolean isAutoMapUsingOrkia() {
+    public boolean isAutoMapUsingOrika() {
         return autoMapUsingOrkia;
     }
 

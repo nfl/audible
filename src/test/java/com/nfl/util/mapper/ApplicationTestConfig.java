@@ -21,7 +21,7 @@ public class ApplicationTestConfig {
 
     @Bean
     public DomainMapper domainMapper() {
-        return new DomainMapperBuilder().setAutoMapUsingOrkia(true).setDefaultEmbeddedMapping(MappingType.EMBEDDED).setParallelProcessEmbeddedList(true).build();
+        return new DomainMapperBuilder().setAutoMapUsingOrika(true).setDefaultEmbeddedMapping(MappingType.EMBEDDED).setParallelProcessEmbeddedList(true).build();
     }
 
 }

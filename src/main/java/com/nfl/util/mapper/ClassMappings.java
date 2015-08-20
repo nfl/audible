@@ -41,7 +41,6 @@ public class ClassMappings {
 
     public void addMapping(Class originalClass, String mappingName, MappingType type, Map<String, Function> functionMapping) {
         String key = originalClass + "#" + mappingName;
-        String parallelKey = key + "#" + type;
         switch(type) {
             case EMBEDDED:
                 embeddedMapping.put(key, functionMapping);

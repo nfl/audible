@@ -10,7 +10,7 @@ public class DomainMapperBuilder {
 
     private MappingType defaultEmbeddedMapping = MappingType.EMBEDDED; //TODO: move to config builder
 
-    private boolean autoMapUsingOrkia = true; //TODO: move to config builder
+    private boolean autoMapUsingOrika = true; //TODO: move to config builder
 
     private boolean parallelProcessEmbeddedList = false; //TODO: move to config builder
 
@@ -20,8 +20,8 @@ public class DomainMapperBuilder {
         return this;
     }
 
-    public DomainMapperBuilder setAutoMapUsingOrkia(boolean autoMapUsingOrkia) {
-        this.autoMapUsingOrkia = autoMapUsingOrkia;
+    public DomainMapperBuilder setAutoMapUsingOrika(boolean autoMapUsingOrika) {
+        this.autoMapUsingOrika = autoMapUsingOrika;
         return this;
     }
 
@@ -39,8 +39,8 @@ public class DomainMapperBuilder {
         return defaultEmbeddedMapping;
     }
 
-    public boolean isAutoMapUsingOrkia() {
-        return autoMapUsingOrkia;
+    public boolean isAutoMapUsingOrika() {
+        return autoMapUsingOrika;
     }
 
     public boolean isParallelProcessEmbeddedList() {
