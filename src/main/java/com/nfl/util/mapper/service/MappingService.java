@@ -122,6 +122,7 @@ public class MappingService implements ApplicationContextAware {
         ClassMappings classMappings = cacheMap.get(toClass);
 
         if (classMappings == null) {
+            //TODO setMapping to empty map so that Orika automap still works
             throw new RuntimeException("No Mapping found for type : " + toClass.getName());
         }
 

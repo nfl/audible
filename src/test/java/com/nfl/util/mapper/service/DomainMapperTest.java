@@ -2,6 +2,8 @@ package com.nfl.util.mapper.service;
 
 import com.nfl.util.mapper.ApplicationTestConfig;
 import com.nfl.util.mapper.MappingType;
+import com.nfl.util.mapper.domain.auto.source.FromAuto;
+import com.nfl.util.mapper.domain.auto.target.ToAuto;
 import com.nfl.util.mapper.domain.complete.source.Animal;
 import com.nfl.util.mapper.domain.complete.source.FromFriend;
 import com.nfl.util.mapper.domain.complete.source.FromJob;
@@ -35,6 +37,9 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
 
     @Autowired
     private DomainMapper dm;
+
+    @Autowired
+    private UnitConverter uc;
 
     private Student1 s1;
 
@@ -106,10 +111,30 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
     }
 
     @Test
+    public void testAutoMapping() {
+        FromAuto fa = new FromAuto();
+        fa.setA(1);
+        fa.setB(2);
+        fa.setC(3);
+        ToAuto ta = dm.map(ToAuto.class, fa);
+        Assert.assertEquals(ta.getA(), fa.getA());
+        Assert.assertEquals(ta.getB(), fa.getB());
+        Assert.assertEquals(ta.getC(), fa.getC());
+    }
+
+    @Test
     public void testEmbedded() {
         ToPerson tp = dm.map(ToPerson.class, fp);
         Assert.assertEquals(tp.getJob().getYearsExperience(), fp.getJob().getYearsExperience());
         Assert.assertEquals(tp.getJob().getTitle(), fp.getJob().getPosition());
+    }
+
+    @Test
+    public void testMapWithExternalService() {
+        ToPerson tp = dm.map(ToPerson.class, fp);
+        Assert.assertEquals(tp.getWeightKgs(), uc.lbsToKgs(fp.getWeightLbs()));
+        Assert.assertEquals(tp.getHeightCentimeters(), (int) uc.inchesToCentimeters(fp.getHeightInches()));
+
     }
 
     @Test
@@ -125,7 +150,7 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
     }
 
     @Test
-    public void testDomainTransformer() throws Exception {
+    public void testDomainMapper() throws Exception {
         Student2 s2 = dm.map(Student2.class, s1);
         Assert.assertEquals(s1.getName(), s2.getFirstName() + " " + s2.getLastName());
         Assert.assertEquals(s1.getAge(), s2.getNums().getAge());
@@ -192,21 +217,4 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         });
     }
 
-    @Test
-    public void testMinPlusAdditional() throws Exception {
-        Student2 s2 = dm.map(Student2.class, s1, "min_add", MappingType.NORMAL);
-        Assert.assertEquals(s2.getFirstName(), s1.getName().split(" ")[0]);
-        Assert.assertEquals(s2.getLastName(), s1.getName().split(" ")[1]);
-        Assert.assertEquals(s2.getNums().getAge(), s1.getAge());
-        Assert.assertEquals(s2.getNums().getGpa(), s1.getGpa());
-    }
-
-    @Test
-    public void testFullAuto() throws Exception {
-        Student2 s2 = dm.map(Student2.class, s1);
-        Assert.assertNotNull(s2);
-
-        s2 = dm.map(Student2.class, s1);
-        Assert.assertNotNull(s2);
-    }
 }

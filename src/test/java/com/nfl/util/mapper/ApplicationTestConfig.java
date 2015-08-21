@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
  * Spring Boot default configuration for testing.
  */
 @Configuration
-@ComponentScan(basePackages = {"com.nfl.util.mapper.domain.dummy", "com.nfl.util.mapper.domain.complete"})
+@ComponentScan(basePackages = {"com.nfl.util.mapper.domain"})
 public class ApplicationTestConfig {
 
     @Bean
