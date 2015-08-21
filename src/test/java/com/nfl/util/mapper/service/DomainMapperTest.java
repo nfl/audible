@@ -14,6 +14,9 @@ import com.nfl.util.mapper.domain.dummy.MyList;
 import com.nfl.util.mapper.domain.dummy.Numbers;
 import com.nfl.util.mapper.domain.dummy.Student1;
 import com.nfl.util.mapper.domain.dummy.Student2;
+import com.nfl.util.mapper.domain.multi_source.source.FromAddress;
+import com.nfl.util.mapper.domain.multi_source.source.FromAnotherAddress;
+import com.nfl.util.mapper.domain.multi_source.target.ToAddress;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
@@ -215,6 +218,26 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
             temp.setNums(n);
             Assert.assertTrue(list.getData().contains(temp));
         });
+    }
+
+    @Test
+    public void testDifferentSources() {
+        FromAddress fa = new FromAddress();
+        FromAnotherAddress faa= new FromAnotherAddress();
+
+        fa.setStreet("10950 W Washington Blvd");
+        fa.setZip("90232");
+
+        faa.setStreet("10950 W Washington Blvd");
+        faa.setZipPlusFour("90232-4026");
+
+        ToAddress ta1 = dm.map(ToAddress.class, fa);
+        ToAddress ta2 = dm.map(ToAddress.class, faa);
+
+        Assert.assertEquals(ta1.getStreet(), ta2.getStreet());
+        Assert.assertEquals(ta1.getZip(), ta2.getZip());
+
+
     }
 
 }

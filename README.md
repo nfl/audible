@@ -42,7 +42,7 @@ public class ApplicationConfig {
 
     @Bean
     public DomainMapper domainMapper() {
-        return new DomainMapperBuilder().setAutoMapUsingOrkia(true)
+        return new DomainMapperBuilder().setAutoMapUsingOrika(true)
         								.setDefaultEmbeddedMapping(MappingType.EMBEDDED)
         								.setParallelProcessEmbeddedList(true)
         								.build();
@@ -495,7 +495,7 @@ public class ToAddressMapping {
 	public Map<String, Function<FromAnotherAddress, ?>> getAnotherMapping() {
 		Map<String, Function<FromAnotherAddress, ?>> map = new HashMap<>();
 		map.put("street", (FromAnotherAddress fa) -> fa.getStreet());
-		map.put("zip", (FromAnotherAddress fa) -> fa.getZipPlusFour().substring(fa.getZipPlusFour().indexOf(-)));
+		map.put("zip", (FromAnotherAddress fa) -> fa.getZipPlusFour().substring(0, fa.getZipPlusFour().indexOf('-')));
 		map.put("state", (FromAnotherAddress fa) -> geoService.getStateFromZip(fa.getZip()));
 		
 		return map;
