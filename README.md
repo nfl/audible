@@ -348,8 +348,72 @@ public class Driver {
 	}
 }
 ```
+#Advanced
 
 ##Embedded Mapping
+
+###ToAddressMapping.java
+
+```java
+@Component
+@MappingTo(ToAddress.class)
+public class ToAddressMapping {
+
+	@AutoWired
+	private GeoService geoService;
+
+	@Mapping(originalClass = FromAddress.class)
+	public Map<String, Function<FromAddress, ?>> getMapping() {
+		Map<String, Function<FromAddress, ?>> map = new HashMap<>();
+		map.put("street", (FromAddress fa) -> fa.getStreet());
+		map.put("zip", (FromAddress fa) -> fa.getZip());
+		map.put("state", (FromAddress fa) -> geoService.getStateFromZip(fa.getZip()));
+		
+		return map;
+	}
+
+	@Mapping(mappingType = MappingType.EMBEDDED, originalClass = FromAddress.class)
+	public Map<String, Function<FromAddress, ?>> getEmbeddedMapping() {
+		Map<String, Function<FromAddress, ?>> map = new HashMap<>();
+		map.put("street", (FromAddress fa) -> fa.getStreet());
+		
+		return map;
+	}
+
+}
+
+```
+
+```
+public class Main {
+
+	@AutoWired
+	DomainMapper dm;
+	
+	public static void main() {
+		//MappingType.EMBEDDED == dm.getDefaultEmbeddedMapping()
+
+		FromStudent fromStudent = new FromStudent();
+		fromStudent.setName("Tom Brady");
+		fromStudent.setAge(38);
+		fromStudent.setGpa(4.0);
+
+		FromAddress fromAddress = new FromAddress();
+		fromAddress.setAddress("10950 Washington Blvd");
+		fromAddress.setZip("80232");
+		
+		Student toStudent = dm.map(ToStudent.class, fromStudent);
+		//toStudent.getFirstName() == "Brady"
+		//toStudent.getLastName() == "Tom"
+
+		//toStudent.getAddress().getZip() == null
+
+		ToAddress toAddress = dm.map(ToAddress.class, fromAddress);
+		//toAddress.getZip() == 80232
+	}
+}
+```
+
 
 ##Named Mapping Example
 ###ToStudentMapping.java
@@ -392,6 +456,163 @@ public class Main {
 		Student toStudent = dm.map(ToStudent.class, fromStudent, "reverseName");
 		//toStudent.getFirstName() == "Brady"
 		//toStudent.getLastName() == "Tom"
+	}
+}
+```
+
+##Multiple Source Types
+
+```
+public class FromAnotherAddress {
+
+	private String street;
+	
+	private String zipPlusFour; //of the form ZIP+4 
+	
+	...
+}
+```
+
+```java
+@Component
+@MappingTo(ToAddress.class)
+public class ToAddressMapping {
+
+	@AutoWired
+	private GeoService geoService;
+
+	@Mapping(originalClass = FromAddress.class)
+	public Map<String, Function<FromAddress, ?>> getMapping() {
+		Map<String, Function<FromAddress, ?>> map = new HashMap<>();
+		map.put("street", (FromAddress fa) -> fa.getStreet());
+		map.put("zip", (FromAddress fa) -> fa.getZip());
+		map.put("state", (FromAddress fa) -> geoService.getStateFromZip(fa.getZip()));
+		
+		return map;
+	}
+
+	@Mapping(originalClass = FromAnotherAddress.class)
+	public Map<String, Function<FromAnotherAddress, ?>> getAnotherMapping() {
+		Map<String, Function<FromAnotherAddress, ?>> map = new HashMap<>();
+		map.put("street", (FromAnotherAddress fa) -> fa.getStreet());
+		map.put("zip", (FromAnotherAddress fa) -> fa.getZipPlusFour().substring(fa.getZipPlusFour().indexOf(-)));
+		map.put("state", (FromAnotherAddress fa) -> geoService.getStateFromZip(fa.getZip()));
+		
+		return map;
+	}
+
+}
+
+```
+
+###Main.java
+```
+public class Main {
+
+	@AutoWired
+	DomainMapper dm;
+	
+	public static void main() {
+
+		FromAddress fromAddress = new FromAddress();
+		fromAddress.setAddress("10950 Washington Blvd");
+		fromAddress.setZip("80232");
+		
+		FromAnotherAddress fromAnotherAddress = new FromAnotherAddress();
+		fromAnotherAddress.setAddress("10950 Washington Blvd");
+		fromAnotherAddress.setZipPlusFour("80232-0000");
+
+		ToAddress toAddress = dm.map(ToAddress.class, fromAddress);
+		//toAddress.getZip() == 80232
+
+		ToAddress toAddress = dm.map(ToAddress.class, fromAnotherAddress);
+		//toAddress.getZip() == 80232
+	}
+}
+```
+
+##Overriding MappingType
+```java
+@Component
+@MappingTo(ToStudent.class)
+public class ToStudentMapping {
+
+   @Autowired
+   private SSNService ssnService;
+
+   @Mapping(originalClass = FromStudent.class)
+    public Map<String, Function<FromStudent, ?>> getMapping() {
+        Map<String, Function<FromStudent, ?>> map = new HashMap<>();
+        ...
+
+        //Override address mapping to NORMAL mappingTYpe
+        map.put("address", (FromStudent s) -> CustomMappingWrapper.customMapping(s.getAddress()).withMappingType(MappingType.NORMAL);
+        return map;
+    }
+    
+    @PostProcessor(originalClass = FromStudent.class)
+	public void postProcess(ToStudent toStudent, FromStudent fromStudent) {
+		doSomething();
+	}
+    
+    ...
+}
+```
+
+```java
+@Component
+@MappingTo(ToAddress.class)
+public class ToAddressMapping {
+
+	@AutoWired
+	private GeoService geoService;
+
+	@Mapping(originalClass = FromAddress.class)
+	public Map<String, Function<FromAddress, ?>> getMapping() {
+		Map<String, Function<FromAddress, ?>> map = new HashMap<>();
+		map.put("street", (FromAddress fa) -> fa.getStreet());
+		map.put("zip", (FromAddress fa) -> fa.getZip());
+		map.put("state", (FromAddress fa) -> geoService.getStateFromZip(fa.getZip()));
+		
+		return map;
+	}
+
+	@Mapping(mappingType = MappingType.EMBEDDED, originalClass = FromAddress.class)
+	public Map<String, Function<FromAddress, ?>> getEmbeddedMapping() {
+		Map<String, Function<FromAddress, ?>> map = new HashMap<>();
+		map.put("street", (FromAddress fa) -> fa.getStreet());
+		
+		return map;
+	}
+
+}
+
+```
+
+###Main.java
+```
+public class Main {
+
+	@AutoWired
+	DomainMapper dm;
+	
+	public static void main() {
+		//MappingType.EMBEDDED == dm.getDefaultEmbeddedMapping()
+
+		FromStudent fromStudent = new FromStudent();
+		fromStudent.setName("Tom Brady");
+		fromStudent.setAge(38);
+		fromStudent.setGpa(4.0);
+
+		FromAddress fromAddress = new FromAddress();
+		fromAddress.setAddress("10950 Washington Blvd");
+		fromAddress.setZip("80232");
+		
+		Student toStudent = dm.map(ToStudent.class, fromStudent);
+		
+		//NORMAL mapping was used
+		//toStudent.getAddress().getZip() == 80232
+
 	}
 }
 ```
