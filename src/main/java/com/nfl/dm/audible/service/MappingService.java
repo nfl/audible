@@ -23,7 +23,6 @@ import java.util.function.Function;
 /**
  * Created by jackson.brodeur on 8/3/15.
  */
-@Service
 public class MappingService implements ApplicationContextAware {
 
     private Map<Class, ClassMappings> cacheMap = new HashMap<>();

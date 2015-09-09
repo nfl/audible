@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
  * DomainMapper uses Map of String, Function to map one pojo to another
  */
 @SuppressWarnings("unused")
-@Component
 public class DomainMapper {
 
     private static final Log log = LogFactory.getLog(DomainMapper.class);
