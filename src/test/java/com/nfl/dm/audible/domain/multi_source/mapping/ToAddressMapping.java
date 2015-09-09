@@ -1,10 +1,10 @@
-package com.nfl.util.mapper.domain.multi_source.mapping;
+package com.nfl.dm.audible.domain.multi_source.mapping;
 
-import com.nfl.util.mapper.annotation.Mapping;
-import com.nfl.util.mapper.annotation.MappingTo;
-import com.nfl.util.mapper.domain.multi_source.source.FromAddress;
-import com.nfl.util.mapper.domain.multi_source.source.FromAnotherAddress;
-import com.nfl.util.mapper.domain.multi_source.target.ToAddress;
+import com.nfl.dm.audible.annotation.Mapping;
+import com.nfl.dm.audible.annotation.MappingTo;
+import com.nfl.dm.audible.domain.multi_source.source.FromAddress;
+import com.nfl.dm.audible.domain.multi_source.source.FromAnotherAddress;
+import com.nfl.dm.audible.domain.multi_source.target.ToAddress;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;

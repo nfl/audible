@@ -1,9 +1,9 @@
-package com.nfl.util.mapper.domain.multi_source.target;
+package com.nfl.dm.audible.domain.multi_source.source;
 
 /**
  * Created by jackson.brodeur on 8/21/15.
  */
-public class ToAddress {
+public class FromAddress {
 
     private String street;
 
