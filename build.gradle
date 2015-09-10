@@ -1,0 +1,76 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'com.nfl.dm.util'
+version = '0.1.2-SNAPSHOT'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+def springVersion =  "4.1.6.RELEASE"
+
+
+dependencies {
+    compile("ma.glasnost.orika:orika-core:1.4.6")
+    compile("commons-beanutils:commons-beanutils:1.9.2")
+    compile group: 'org.slf4j', name: 'slf4j-simple', version : '1.7.12'
+    compile group: 'org.springframework', name: 'spring-context', version: springVersion
+    testCompile group: 'org.springframework', name: 'spring-test', version: springVersion
+    testCompile group: 'org.testng', name: 'testng', version: '6.9.4'
+}
+
+test {
+    useTestNG()
+}
+
+task sourcesJar(type: Jar, dependsOn:classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+
+artifacts {
+    archives sourcesJar
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}
+
+def getMavenSettingsCredentials = {
+    String userHome = System.getProperty( "user.home" );
+    File mavenSettings = new File(userHome, ".m2/settings.xml")
+    def xmlSlurper = new XmlSlurper()
+    def output = xmlSlurper.parse(mavenSettings)
+    return output."servers"."server"
+}
+
+def getCredentials = {
+    def entries = getMavenSettingsCredentials()
+    for (entry in entries) {
+        if ( entry."id".text() == "nexus" ) {
+            return [username: entry.username.text(), password: entry.password.text()]
+        }
+    }
+}
+uploadArchives {
+    def creds = getCredentials()
+    repositories.mavenDeployer {
+        pom.artifactId = 'audible'
+        repository(url: "http://nexus.la3.nfl.com/nexus/content/repositories/releases") {
+            authentication(userName: creds["username"], password: creds["password"])
+        }
+        snapshotRepository(url: 'http://nexus.la3.nfl.com/nexus/content/repositories/snapshots') {
+            authentication(userName: creds["username"], password: creds["password"])
+        }
+
+
+    }
+}
