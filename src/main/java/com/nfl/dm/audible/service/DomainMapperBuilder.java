@@ -14,6 +14,7 @@ public class DomainMapperBuilder {
 
     private boolean parallelProcessEmbeddedList = false; //TODO: move to config builder
 
+    private boolean ignoreNullPointerException = false;
 
     public DomainMapperBuilder setDefaultEmbeddedMapping(MappingType defaultEmbeddedMapping) {
         this.defaultEmbeddedMapping = defaultEmbeddedMapping;
@@ -30,6 +31,11 @@ public class DomainMapperBuilder {
         return this;
     }
 
+    public DomainMapperBuilder setIgnoreNullPointerException(boolean ignoreNullPointerException) {
+        this.ignoreNullPointerException = ignoreNullPointerException;
+        return this;
+    }
+
 
     public DomainMapper build() {
         return new DomainMapper(this);
@@ -42,6 +48,12 @@ public class DomainMapperBuilder {
     public boolean isAutoMapUsingOrika() {
         return autoMapUsingOrika;
     }
+
+    public boolean isIgnoreNullPointerException() {
+        return ignoreNullPointerException;
+    }
+
+
 
     public boolean isParallelProcessEmbeddedList() {
         return parallelProcessEmbeddedList;

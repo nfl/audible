@@ -37,11 +37,13 @@ public class DomainMapper {
 
     private MapperFactory mapperFactory = new DefaultMapperFactory.Builder().build();
 
-    private MappingType defaultEmbeddedMapping = MappingType.EMBEDDED; //TODO: move to config builder
+    private final MappingType defaultEmbeddedMapping;
 
-    private boolean autoMapUsingOrika = true; //TODO: move to config builder
+    private final boolean autoMapUsingOrika;
 
-    private boolean parallelProcessEmbeddedList = false; //TODO: move to config builder
+    private final boolean parallelProcessEmbeddedList;
+
+    private final boolean ignoreNullPointerException;
 
     @Autowired
     private MappingService mappingService;
@@ -50,6 +52,7 @@ public class DomainMapper {
         this.defaultEmbeddedMapping = builder.getDefaultEmbeddedMapping();
         this.autoMapUsingOrika = builder.isAutoMapUsingOrika();
         this.parallelProcessEmbeddedList = builder.isParallelProcessEmbeddedList();
+        this.ignoreNullPointerException = builder.isIgnoreNullPointerException();
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
@@ -297,7 +300,7 @@ public class DomainMapper {
 
             Object toProperty = PropertyUtils.getProperty(to, toPropertyName);
 
-            return doMapping(toPropertyClass, rhs, "", defaultEmbeddedMapping, hasFullAutoParent, toProperty);
+            return doMapping(toPropertyClass, rhs, EMPTY, defaultEmbeddedMapping, hasFullAutoParent, toProperty);
         }
         else return rhs;
     }
@@ -314,7 +317,13 @@ public class DomainMapper {
             return fromExpression.apply(from);
 
         } catch (NullPointerException npe) {
-            return null;
+
+            if (ignoreNullPointerException) {
+                return null;
+            } else {
+                throw npe;
+            }
+
         }
 
     }
@@ -329,5 +338,9 @@ public class DomainMapper {
 
     public boolean isParallelProcessEmbeddedList() {
         return parallelProcessEmbeddedList;
+    }
+
+    public boolean isIgnoreNullPointerException() {
+        return ignoreNullPointerException;
     }
 }
