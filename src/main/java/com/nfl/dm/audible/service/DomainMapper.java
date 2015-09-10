@@ -113,85 +113,82 @@ public class DomainMapper {
 
         final boolean hasFullAutoParentFinal;
 
-        try {
+        if (from == null) return null;
 
-            if (from == null) return null;
+        //final To to;
 
-            //final To to;
+        if (from instanceof CustomMappingWrapper) {
+            CustomMappingWrapper cmo = (CustomMappingWrapper) from;
+            mappingType = cmo.getMappingType();
+            mappingName = cmo.getMappingName();
+        }
 
-            if (from instanceof CustomMappingWrapper) {
-                CustomMappingWrapper cmo = (CustomMappingWrapper) from;
-                mappingType = cmo.getMappingType();
-                mappingName = cmo.getMappingName();
+        MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
+
+        Map<String, Function> mapping = mappingFunction.getMapping();
+        if (!hasFullAutoParent && autoMapUsingOrika) {
+
+            //TODO move to cache
+            MapperFacade orikaMapper;
+
+            if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(from.getClass()), TypeFactory.valueOf(toClass), false)) {
+
+                mapperFactory.classMap(from.getClass(), toClass)
+                        .byDefault().register();
             }
 
-            MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
-
-            Map<String, Function> mapping = mappingFunction.getMapping();
-            if (!hasFullAutoParent && autoMapUsingOrika) {
-
-                //TODO move to cache
-                MapperFacade orikaMapper;
-
-                if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(from.getClass()), TypeFactory.valueOf(toClass), false)) {
-
-                    mapperFactory.classMap(from.getClass(), toClass)
-                            .byDefault().register();
-                }
-
-                orikaMapper = mapperFactory.getMapperFacade();
+            orikaMapper = mapperFactory.getMapperFacade();
 
 
-                nonFinalTo = orikaMapper.map(from, toClass);
+            nonFinalTo = orikaMapper.map(from, toClass);
 
-                hasFullAutoParentFinal = true;
+            hasFullAutoParentFinal = true;
 
-            } else if (nonFinalTo == null){
+        } else if (nonFinalTo == null){
+            try {
                 nonFinalTo = toClass.newInstance();
-                hasFullAutoParentFinal = hasFullAutoParent;
-            } else {
-                hasFullAutoParentFinal = hasFullAutoParent;
+            } catch (IllegalAccessException | InstantiationException e) {
+                throw new RuntimeException("Error creating instace of " + toClass, e);
             }
+            hasFullAutoParentFinal = hasFullAutoParent;
+        } else {
+            hasFullAutoParentFinal = hasFullAutoParent;
+        }
 
-            final Object finalFrom = from;
+        final Object finalFrom = from;
 
-            final To to = nonFinalTo;
+        final To to = nonFinalTo;
 
-            assert mapping != null;
+        assert mapping != null;
 
-            mapping.entrySet().stream().forEach(entry ->
-                    {
-                        String toPropertyName = entry.getKey();
-                        Function fromFunction = entry.getValue();
-                        try {
+        mapping.entrySet().stream().forEach(entry ->
+                {
+                    String toPropertyName = entry.getKey();
+                    Function fromFunction = entry.getValue();
+                    try {
 
-                            Class toPropertyType = PropertyUtils.getPropertyType(to, toPropertyName);
+                        Class toPropertyType = PropertyUtils.getPropertyType(to, toPropertyName);
 
-                            //If the field is collection
-                            if (Collection.class.isAssignableFrom(toPropertyType)) {
-                                handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, hasFullAutoParentFinal);
-                            } else {
+                        //If the field is collection
+                        if (Collection.class.isAssignableFrom(toPropertyType)) {
+                            handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, hasFullAutoParentFinal);
+                        } else {
 
-                                Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal, to, toPropertyName);
+                            Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal, to, toPropertyName);
 
-                                PropertyUtils.setNestedProperty(to, toPropertyName, value);
-                            }
-
-                        } catch (Exception e) {
-                            log.warn("unable to set " + toPropertyName + " on " + toClass, e);
+                            PropertyUtils.setNestedProperty(to, toPropertyName, value);
                         }
 
+                    } catch (Exception e) {
+                        log.warn("unable to set " + toPropertyName + " on " + toClass, e);
                     }
-            );
 
-            handlePostProcessor(to, toClass, from, mappingName);
+                }
+        );
 
+        handlePostProcessor(to, toClass, from, mappingName);
 
-            return to;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        return to;
     }
 
     private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean hasFullAutoParent) throws Exception {
@@ -267,7 +264,7 @@ public class DomainMapper {
         }
     }
 
-    private void handlePostProcessor(Object to, Class toClass, Object from, String mappingName) throws Exception {
+    private void handlePostProcessor(Object to, Class toClass, Object from, String mappingName) {
         List<Method> methodsList =  mappingService.getPostProcessors(toClass, from.getClass(), mappingName);
 
         if (methodsList == null) {
@@ -285,7 +282,11 @@ public class DomainMapper {
         Object mappingObject = mappingService.getMappingClassObject(toClass);
 
         for (Method method : methodsList) {
-            method.invoke(mappingObject, objectArray);
+            try {
+                method.invoke(mappingObject, objectArray);
+            } catch (Exception e) {
+                log.warn("Problem calling post processor", e);
+            }
         }
 
     }
