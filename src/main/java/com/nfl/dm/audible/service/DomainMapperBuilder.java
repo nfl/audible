@@ -16,6 +16,8 @@ public class DomainMapperBuilder {
 
     private boolean ignoreNullPointerException = false;
 
+    private boolean failOnException = false;
+
     public DomainMapperBuilder setDefaultEmbeddedMapping(MappingType defaultEmbeddedMapping) {
         this.defaultEmbeddedMapping = defaultEmbeddedMapping;
         return this;
@@ -36,6 +38,11 @@ public class DomainMapperBuilder {
         return this;
     }
 
+    public DomainMapperBuilder setFailOnException(boolean failOnException) {
+        this.failOnException = failOnException;
+        return this;
+    }
+
 
     public DomainMapper build() {
         return new DomainMapper(this);
@@ -53,7 +60,9 @@ public class DomainMapperBuilder {
         return ignoreNullPointerException;
     }
 
-
+    public boolean isFailOnException() {
+        return failOnException;
+    }
 
     public boolean isParallelProcessEmbeddedList() {
         return parallelProcessEmbeddedList;

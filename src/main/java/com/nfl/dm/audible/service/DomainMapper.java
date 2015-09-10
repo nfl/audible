@@ -44,6 +44,8 @@ public class DomainMapper {
 
     private final boolean ignoreNullPointerException;
 
+    private final boolean failOnException;
+
     @Autowired
     private MappingService mappingService;
 
@@ -52,6 +54,7 @@ public class DomainMapper {
         this.autoMapUsingOrika = builder.isAutoMapUsingOrika();
         this.parallelProcessEmbeddedList = builder.isParallelProcessEmbeddedList();
         this.ignoreNullPointerException = builder.isIgnoreNullPointerException();
+        this.failOnException = builder.isFailOnException();
     }
 
     public <From, To> List<To> mapList(Class<To> toClass, Collection<From> list) {
@@ -115,7 +118,6 @@ public class DomainMapper {
 
         if (from == null) return null;
 
-        //final To to;
 
         if (from instanceof CustomMappingWrapper) {
             CustomMappingWrapper cmo = (CustomMappingWrapper) from;
@@ -181,6 +183,9 @@ public class DomainMapper {
 
                     } catch (Exception e) {
                         log.warn("unable to set " + toPropertyName + " on " + toClass, e);
+                        if (failOnException) {
+                            throw new RuntimeException(e);
+                        }
                     }
 
                 }
@@ -286,6 +291,9 @@ public class DomainMapper {
                 method.invoke(mappingObject, objectArray);
             } catch (Exception e) {
                 log.warn("Problem calling post processor", e);
+                if (failOnException) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
