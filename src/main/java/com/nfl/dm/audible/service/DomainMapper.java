@@ -118,14 +118,19 @@ public class DomainMapper {
 
         if (from == null) return null;
 
-
         if (from instanceof CustomMappingWrapper) {
             CustomMappingWrapper cmo = (CustomMappingWrapper) from;
+            from = (From)cmo.getObject();
             mappingType = cmo.getMappingType();
             mappingName = cmo.getMappingName();
+
+            if (from == null) return null;
+
         }
 
-        MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, from.getClass(), mappingName, mappingType);
+        Class fromClass = from.getClass();
+
+        MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, fromClass, mappingName, mappingType);
 
         Map<String, Function> mapping = mappingFunction.getMapping();
         if (!hasFullAutoParent && autoMapUsingOrika) {
@@ -133,9 +138,9 @@ public class DomainMapper {
             //TODO move to cache
             MapperFacade orikaMapper;
 
-            if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(from.getClass()), TypeFactory.valueOf(toClass), false)) {
+            if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(fromClass), TypeFactory.valueOf(toClass), false)) {
 
-                mapperFactory.classMap(from.getClass(), toClass)
+                mapperFactory.classMap(fromClass, toClass)
                         .byDefault().register();
             }
 
