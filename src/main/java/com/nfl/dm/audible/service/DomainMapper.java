@@ -93,7 +93,6 @@ public class DomainMapper {
 
 
 
-
     public <From, To> To map(Class<To> toClass, From from) {
         return this.map(toClass, from, EMPTY, MappingType.NORMAL);
     }
@@ -108,6 +107,24 @@ public class DomainMapper {
 
     public <From, To> To map(Class<To> toClass, From from, String mappingName, MappingType mappingType) {
         return this.doMapping(toClass, from, mappingName, mappingType, false, null);
+    }
+
+
+
+    public <From, To> To merge(Class<To> toClass, From from, To to) {
+        return this.merge(toClass, from, to, EMPTY, MappingType.NORMAL);
+    }
+
+    public <From, To> To merge(Class<To> toClass, From from, To to, MappingType mappingType) {
+        return this.merge(toClass, from, to, EMPTY, mappingType);
+    }
+
+    public <From, To> To merge(Class<To> toClass, From from, To to, String mappingName) {
+        return this.merge(toClass, from, to, mappingName, MappingType.NORMAL);
+    }
+
+    public <From, To> To merge(Class<To> toClass, From from, To to, String mappingName, MappingType mappingType) {
+        return this.doMapping(toClass, from, mappingName, mappingType, false, to);
     }
 
 
