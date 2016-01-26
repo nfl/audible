@@ -41,6 +41,7 @@ public class MappingService implements ApplicationContextAware {
             MappingTo mappingTo = (MappingTo) mappingClass.getAnnotation(MappingTo.class);
             Class toClass = mappingTo.value();
             ClassMappings value = new ClassMappings(toClass);
+            value.setAlwaysUseOrika(mappingTo.alwaysUseOrika());
             value.setMappingClass(mappingClass);
 
             mappingInstanceMap.put(toClass, object);
@@ -119,6 +120,7 @@ public class MappingService implements ApplicationContextAware {
             throw new RuntimeException("No Mapping found for type : " + toClass.getName());
         }
 
+        mappingFunction.setForceOrika(classMappings.isAlwaysUseOrika());
         mappingFunction.setMapping(classMappings.getMapping(originalClass, name, type));
         mappingFunction.setMappingType(type);
 

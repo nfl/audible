@@ -150,7 +150,7 @@ public class DomainMapper {
         MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, fromClass, mappingName, mappingType);
 
         Map<String, Function> mapping = mappingFunction.getMapping();
-        if (!hasFullAutoParent && autoMapUsingOrika) {
+        if (mappingFunction.isForceOrika() || (!hasFullAutoParent && autoMapUsingOrika)) {
 
             //TODO move to cache
             MapperFacade orikaMapper;

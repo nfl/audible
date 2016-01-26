@@ -18,6 +18,8 @@ public class ClassMappings {
 
     private Class mappingClass;
 
+    private boolean alwaysUseOrika = false;
+
     private Map<String, Map<String, Function>> embeddedMapping;
     private Map<String, Map<String, Function>> topMapping;
     private Map<String, List<Method>> postProcessors;
@@ -38,6 +40,13 @@ public class ClassMappings {
         this.mappingClass = mappingClass;
     }
 
+    public boolean isAlwaysUseOrika() {
+        return alwaysUseOrika;
+    }
+
+    public void setAlwaysUseOrika(boolean alwaysUseOrika) {
+        this.alwaysUseOrika = alwaysUseOrika;
+    }
 
     public void addMapping(Class originalClass, String mappingName, MappingType type, Map<String, Function> functionMapping) {
         String key = originalClass + "#" + mappingName;

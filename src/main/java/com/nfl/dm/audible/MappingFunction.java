@@ -3,12 +3,19 @@ package com.nfl.dm.audible;
 import java.util.Map;
 import java.util.function.Function;
 
-/**
- * Created by jackson.brodeur on 8/5/15.
- */
+
 public class MappingFunction {
+    boolean forceOrika;
     MappingType mappingType;
     Map<String, Function> mapping;
+
+    public boolean isForceOrika() {
+        return forceOrika;
+    }
+
+    public void setForceOrika(boolean forceOrika) {
+        this.forceOrika = forceOrika;
+    }
 
     public MappingType getMappingType() {
         return mappingType;
