@@ -3,15 +3,9 @@ package com.nfl.dm.audible;
 import com.nfl.dm.audible.annotation.PostProcessor;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
-/**
- * Created by jackson.brodeur on 8/3/15.
- */
 public class ClassMappings {
 
     private Class toClass;
@@ -20,14 +14,17 @@ public class ClassMappings {
 
     private boolean alwaysUseOrika = false;
 
-    private Map<String, Map<String, Function>> embeddedMapping;
-    private Map<String, Map<String, Function>> topMapping;
+    private Map<String, Map<String, Function>> embeddedMappingCache;
+    private Map<Class, Map<String, Map<String, Function>>> embeddedMappingRaw;
+    private Map<String, Map<String, Function>> topMappingCache;
+    private Map<Class, Map<String, Map<String, Function>>> topMappingRaw;
     private Map<String, List<Method>> postProcessors;
 
     public ClassMappings(Class toClass) {
-        embeddedMapping = new HashMap<>();
-        topMapping = new HashMap<>();
-
+        embeddedMappingCache = new HashMap<>();
+        embeddedMappingRaw = new HashMap<>();
+        topMappingCache = new HashMap<>();
+        topMappingRaw = new HashMap<>();
         postProcessors = new HashMap<>();
         this.toClass = toClass;
     }
@@ -52,12 +49,20 @@ public class ClassMappings {
         String key = originalClass + "#" + mappingName;
         switch(type) {
             case EMBEDDED:
-                embeddedMapping.put(key, functionMapping);
+                embeddedMappingCache.put(key, functionMapping);
+                embeddedMappingRaw.put(originalClass, createNamedMapping(mappingName, functionMapping));
                 break;
             case NORMAL:
-                topMapping.put(key, functionMapping);
+                topMappingCache.put(key, functionMapping);
+                topMappingRaw.put(originalClass, createNamedMapping(mappingName, functionMapping));
                 break;
         }
+    }
+
+    private Map<String, Map<String, Function>> createNamedMapping(String mappingName, Map<String, Function> functionMapping) {
+        Map<String, Map<String, Function>> namedMapping = new HashMap<>();
+        namedMapping.put(mappingName, functionMapping);
+        return namedMapping;
     }
 
     public void addPostProcessors(Method method, PostProcessor postProcessor) {
@@ -77,7 +82,7 @@ public class ClassMappings {
     }
 
     public Map<String, Map<String, Function>> getFull() {
-        return topMapping;
+        return topMappingCache;
     }
 
     public Map<String, Function> getMapping(Class originalClass, String mappingName, MappingType type) {
@@ -88,17 +93,27 @@ public class ClassMappings {
 
         switch (type) {
             case EMBEDDED:
-                if(embeddedMapping.containsKey(key)) {
-                    requestedMapping = embeddedMapping.get(key);
-                } else if (topMapping.containsKey(key)) {
-                    requestedMapping = topMapping.get(key);
+                if(embeddedMappingCache.containsKey(key)) {
+                    requestedMapping = embeddedMappingCache.get(key);
+                } else if (topMappingCache.containsKey(key)) {
+                    requestedMapping = topMappingCache.get(key);
+                } else {
+                    Map<String, Function> byAssignableEmbeddable = getByAssignable(embeddedMappingCache, embeddedMappingRaw, originalClass, mappingName);
+                    return byAssignableEmbeddable != null
+                            ? byAssignableEmbeddable
+                            : getByAssignable(topMappingCache, topMappingRaw, originalClass, mappingName);
                 }
                 break;
             case NORMAL:
-                if(topMapping.containsKey(key)) {
-                    requestedMapping = topMapping.get(key);
-                } else if (embeddedMapping.containsKey(key)) {
-                    requestedMapping = embeddedMapping.get(key);
+                if(topMappingCache.containsKey(key)) {
+                    requestedMapping = topMappingCache.get(key);
+                } else if (embeddedMappingCache.containsKey(key)) {
+                    requestedMapping = embeddedMappingCache.get(key);
+                } else {
+                    Map<String, Function> byAssignableTop = getByAssignable(topMappingCache, topMappingRaw, originalClass, mappingName);
+                    return byAssignableTop != null
+                            ? byAssignableTop
+                            : getByAssignable(embeddedMappingCache, embeddedMappingRaw, originalClass, mappingName);
                 }
                 break;
         }
@@ -109,6 +124,29 @@ public class ClassMappings {
 
         return requestedMapping;
 
+    }
+
+    private Map<String, Function> getByAssignable(Map<String, Map<String, Function>> cache, Map<Class, Map<String, Map<String, Function>>> rawMap, Class clazz, String name) {
+
+        Set<Class> classes = rawMap.keySet();
+        Optional<Class> candidate = classes.stream().findFirst().filter(it -> it.isAssignableFrom(clazz));
+
+        if (candidate.isPresent()) {
+            Class candidateClass = candidate.get();
+            Map<String, Map<String, Function>> namedFunctionMap = rawMap.get(candidateClass);
+
+            Map<String, Function> functionMap = namedFunctionMap.get(name);
+            if (functionMap != null) {
+                String key = clazz + "#" + name;
+                cache.put(key, functionMap);
+
+                return functionMap;
+
+            }
+
+        }
+
+        return null;
     }
 
 }
