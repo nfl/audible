@@ -5,6 +5,11 @@ public final class CustomMappingWrapper {
     private Object object;
     private MappingType mappingType = MappingType.NORMAL;
     private String mappingName = "";
+    private Orika orika = Orika.DEFAULT;
+
+    public enum Orika {
+        DEFAULT, FORCE_OFF, FORCE_ON
+    }
 
     public Object getObject() {
         return object;
@@ -16,6 +21,10 @@ public final class CustomMappingWrapper {
 
     public String getMappingName() {
         return mappingName;
+    }
+
+    public Orika getOrika() {
+        return orika;
     }
 
     public static CustomMappingWrapper customMapping(Object object) {
@@ -32,6 +41,11 @@ public final class CustomMappingWrapper {
 
     public CustomMappingWrapper withName(String mappingName) {
         this.mappingName = mappingName;
+        return this;
+    }
+
+    public CustomMappingWrapper withOrika(Orika orika) {
+        this.orika = orika;
         return this;
     }
 }

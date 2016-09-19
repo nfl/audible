@@ -5,17 +5,9 @@ import java.util.function.Function;
 
 
 public class MappingFunction {
-    boolean forceOrika;
+
     MappingType mappingType;
     Map<String, Function> mapping;
-
-    public boolean isForceOrika() {
-        return forceOrika;
-    }
-
-    public void setForceOrika(boolean forceOrika) {
-        this.forceOrika = forceOrika;
-    }
 
     public MappingType getMappingType() {
         return mappingType;

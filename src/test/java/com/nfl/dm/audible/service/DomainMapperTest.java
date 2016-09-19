@@ -3,7 +3,9 @@ package com.nfl.dm.audible.service;
 import com.nfl.dm.audible.ApplicationTestConfig;
 import com.nfl.dm.audible.domain.auto.source.FromAuto;
 import com.nfl.dm.audible.domain.auto.target.ToAuto;
+import com.nfl.dm.audible.domain.complete.source.Animal;
 import com.nfl.dm.audible.domain.complete.source.FromFriend;
+import com.nfl.dm.audible.domain.complete.source.FromJob;
 import com.nfl.dm.audible.domain.complete.source.FromPerson;
 import com.nfl.dm.audible.domain.complete.target.ToFriend;
 import com.nfl.dm.audible.domain.complete.target.ToPerson;
@@ -11,11 +13,10 @@ import com.nfl.dm.audible.domain.dummy.MyList;
 import com.nfl.dm.audible.domain.dummy.Numbers;
 import com.nfl.dm.audible.domain.dummy.Student1;
 import com.nfl.dm.audible.domain.dummy.Student2;
-import com.nfl.dm.audible.domain.complete.source.Animal;
-import com.nfl.dm.audible.domain.complete.source.FromJob;
 import com.nfl.dm.audible.domain.multi_source.source.FromAddress;
 import com.nfl.dm.audible.domain.multi_source.source.FromAnotherAddress;
 import com.nfl.dm.audible.domain.multi_source.target.ToAddress;
+import com.nfl.dm.audible.domain.orikaforce.source.Person;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
@@ -237,6 +238,18 @@ public class DomainMapperTest extends AbstractTestNGSpringContextTests {
         Assert.assertEquals(ta1.getZip(), ta2.getZip());
 
 
+    }
+
+    @Test
+    public void testForceOrika() {
+        Person person = new Person();
+        person.setName("someName");
+        person.setAddress1("address1");
+        person.setAddress2("address2");
+
+        com.nfl.dm.audible.domain.orikaforce.target.Person targetPerson = dm.map(com.nfl.dm.audible.domain.orikaforce.target.Person.class, person);
+
+        Assert.assertEquals(person.getAddress1(), targetPerson.getAddress().getAddress1());
     }
 
 }

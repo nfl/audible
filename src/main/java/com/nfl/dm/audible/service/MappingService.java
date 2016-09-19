@@ -41,7 +41,6 @@ public class MappingService implements ApplicationContextAware {
             MappingTo mappingTo = (MappingTo) mappingClass.getAnnotation(MappingTo.class);
             Class toClass = mappingTo.value();
             ClassMappings value = new ClassMappings(toClass);
-            value.setAlwaysUseOrika(mappingTo.alwaysUseOrika());
             value.setMappingClass(mappingClass);
 
             mappingInstanceMap.put(toClass, object);
@@ -111,24 +110,35 @@ public class MappingService implements ApplicationContextAware {
 
     public MappingFunction getMappingFunction(Class toClass, Class originalClass, String name, MappingType type) {
 
+        return getMappingFunction(toClass, originalClass, name, type, false);
+    }
+
+    public MappingFunction getMappingFunction(Class toClass, Class originalClass, String name, MappingType type, boolean optional) {
+
         MappingFunction mappingFunction = new MappingFunction();
+
+        mappingFunction.setMappingType(type);
 
         ClassMappings classMappings = cacheMap.get(toClass);
 
         if (classMappings == null) {
-            //TODO setMapping to empty map so that Orika automap still works
-            throw new RuntimeException("No Mapping found for type : " + toClass.getName());
+            if (optional) {
+                mappingFunction.setMapping(new HashMap<>());
+            } else {
+                throw new RuntimeException("No Mapping found for type : " + toClass.getName());
+            }
+        } else {
+            mappingFunction.setMapping(classMappings.getMapping(originalClass, name, type));
         }
-
-        mappingFunction.setForceOrika(classMappings.isAlwaysUseOrika());
-        mappingFunction.setMapping(classMappings.getMapping(originalClass, name, type));
-        mappingFunction.setMappingType(type);
-
 
         return mappingFunction;
     }
 
     public List<Method> getPostProcessors(Class toClass, Class originalClass, String name) {
-        return cacheMap.get(toClass).getPostProcessors(originalClass, name);
+        ClassMappings classMappings = cacheMap.get(toClass);
+        if (classMappings == null) {
+            return null;
+        }
+        return classMappings.getPostProcessors(originalClass, name);
     }
 }

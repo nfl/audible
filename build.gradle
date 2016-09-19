@@ -7,7 +7,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 group = 'com.nfl.dm.util'
-version = '0.1.7-SNAPSHOT'
+version = '0.1.8-SNAPSHOT'
 
 repositories {
     mavenLocal()
@@ -35,42 +35,24 @@ task sourcesJar(type: Jar, dependsOn:classes) {
     from sourceSets.main.allSource
 }
 
-
 artifacts {
     archives sourcesJar
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.3'
+wrapper {
+    gradleVersion = '3.1'
 }
 
-def getMavenSettingsCredentials = {
-    String userHome = System.getProperty( "user.home" );
-    File mavenSettings = new File(userHome, ".m2/settings.xml")
-    def xmlSlurper = new XmlSlurper()
-    def output = xmlSlurper.parse(mavenSettings)
-    return output."servers"."server"
-}
-
-def getCredentials = {
-    def entries = getMavenSettingsCredentials()
-    for (entry in entries) {
-        if ( entry."id".text() == "nexus" ) {
-            return [username: entry.username.text(), password: entry.password.text()]
-        }
-    }
-}
 uploadArchives {
-    def creds = getCredentials()
-    repositories.mavenDeployer {
-        pom.artifactId = 'audible'
-        repository(url: "http://nexus.la3.nfl.com/nexus/content/repositories/releases") {
-            authentication(userName: creds["username"], password: creds["password"])
+    repositories {
+        mavenDeployer {
+            pom.artifactId = 'audible'
+            repository(url: "http://nexus.dm.nfl.com/nexus/content/repositories/releases") {
+                authentication(userName: mavenUser, password: mavenPassword)
+            }
+            snapshotRepository(url: 'http://nexus.dm.nfl.com/nexus/content/repositories/snapshots') {
+                authentication(userName: mavenUser, password: mavenPassword)
+            }
         }
-        snapshotRepository(url: 'http://nexus.la3.nfl.com/nexus/content/repositories/snapshots') {
-            authentication(userName: creds["username"], password: creds["password"])
-        }
-
-
     }
 }

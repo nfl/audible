@@ -13,5 +13,4 @@ public @interface MappingTo {
 
     Class value();
 
-    boolean alwaysUseOrika() default false;
 }

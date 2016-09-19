@@ -12,8 +12,6 @@ public class ClassMappings {
 
     private Class mappingClass;
 
-    private boolean alwaysUseOrika = false;
-
     private Map<String, Map<String, Function>> embeddedMappingCache;
     private Map<Class, Map<String, Map<String, Function>>> embeddedMappingRaw;
     private Map<String, Map<String, Function>> topMappingCache;
@@ -35,14 +33,6 @@ public class ClassMappings {
 
     public void setMappingClass(Class mappingClass) {
         this.mappingClass = mappingClass;
-    }
-
-    public boolean isAlwaysUseOrika() {
-        return alwaysUseOrika;
-    }
-
-    public void setAlwaysUseOrika(boolean alwaysUseOrika) {
-        this.alwaysUseOrika = alwaysUseOrika;
     }
 
     public void addMapping(Class originalClass, String mappingName, MappingType type, Map<String, Function> functionMapping) {

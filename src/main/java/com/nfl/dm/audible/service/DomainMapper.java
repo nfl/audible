@@ -129,9 +129,9 @@ public class DomainMapper {
 
 
     @SuppressWarnings("unchecked")
-    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType, boolean hasFullAutoParent, To nonFinalTo) {
+    private <From, To> To doMapping(final Class<To> toClass, From from, String mappingName, MappingType mappingType, boolean beenMappedWithOrika, To to) {
 
-        final boolean hasFullAutoParentFinal;
+        CustomMappingWrapper.Orika orikaOverrideSetting = CustomMappingWrapper.Orika.DEFAULT;
 
         if (from == null) return null;
 
@@ -140,6 +140,7 @@ public class DomainMapper {
             from = (From)cmo.getObject();
             mappingType = cmo.getMappingType();
             mappingName = cmo.getMappingName();
+            orikaOverrideSetting = cmo.getOrika();
 
             if (from == null) return null;
 
@@ -147,15 +148,14 @@ public class DomainMapper {
 
         Class fromClass = from.getClass();
 
-        MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, fromClass, mappingName, mappingType);
+        boolean mappedWithOrika = false;
 
-        Map<String, Function> mapping = mappingFunction.getMapping();
-        if (mappingFunction.isForceOrika() || (!hasFullAutoParent && autoMapUsingOrika)) {
+        if (orikaOverrideSetting == CustomMappingWrapper.Orika.FORCE_ON || (orikaOverrideSetting == CustomMappingWrapper.Orika.DEFAULT && (!beenMappedWithOrika && autoMapUsingOrika))) {
 
             //TODO move to cache
             MapperFacade orikaMapper;
 
-            if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(fromClass), TypeFactory.valueOf(toClass), false)) {
+            if (!mapperFactory.existsRegisteredMapper(TypeFactory.valueOf(from.getClass()), TypeFactory.valueOf(toClass), false)) {
 
                 mapperFactory.classMap(fromClass, toClass)
                         .byDefault().register();
@@ -163,27 +163,33 @@ public class DomainMapper {
 
             orikaMapper = mapperFactory.getMapperFacade();
 
+            to = orikaMapper.map(from, toClass);
 
-            nonFinalTo = orikaMapper.map(from, toClass);
+            beenMappedWithOrika = true;
+            mappedWithOrika = true;
 
-            hasFullAutoParentFinal = true;
+        }
 
-        } else if (nonFinalTo == null){
+        if (to == null) {
             try {
-                nonFinalTo = toClass.newInstance();
+                to = toClass.newInstance();
             } catch (IllegalAccessException | InstantiationException e) {
                 throw new RuntimeException("Error creating instace of " + toClass, e);
             }
-            hasFullAutoParentFinal = hasFullAutoParent;
-        } else {
-            hasFullAutoParentFinal = hasFullAutoParent;
         }
 
-        final Object finalFrom = from;
+        doAudibleMapping(toClass, from, mappingName, mappingType, fromClass, to, beenMappedWithOrika, mappedWithOrika);
 
-        final To to = nonFinalTo;
+        handlePostProcessor(to, toClass, from, mappingName);
 
-        assert mapping != null;
+        return to;
+    }
+
+    private <To> void doAudibleMapping(Class<To> toClass, Object from, String mappingName, MappingType mappingType, Class fromClass, To to, boolean beenMappedWithOrika, boolean optional) {
+
+        MappingFunction mappingFunction = mappingService.getMappingFunction(toClass, fromClass, mappingName, mappingType, optional);
+
+        Map<String, Function> mapping = mappingFunction.getMapping();
 
         mapping.entrySet().stream().forEach(entry ->
                 {
@@ -195,10 +201,10 @@ public class DomainMapper {
 
                         //If the field is collection
                         if (Collection.class.isAssignableFrom(toPropertyType)) {
-                            handleCollections(to, toClass, toPropertyType, fromFunction, finalFrom, toPropertyName, hasFullAutoParentFinal);
+                            handleCollections(to, toClass, toPropertyType, fromFunction, from, toPropertyName, beenMappedWithOrika);
                         } else {
 
-                            Object value = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParentFinal, to, toPropertyName);
+                            Object value = eval(toPropertyType, fromFunction, from, beenMappedWithOrika, to, toPropertyName);
 
                             PropertyUtils.setNestedProperty(to, toPropertyName, value);
                         }
@@ -213,12 +219,9 @@ public class DomainMapper {
                 }
         );
 
-        handlePostProcessor(to, toClass, from, mappingName);
-
-        return to;
     }
 
-    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean hasFullAutoParent) throws Exception {
+    private void handleCollections(Object to, Class toClass, Class toPropertyType, Function fromFunction, Object finalFrom, String toPropertyName, boolean beenMappedWithOrika) throws Exception {
         Field field = toClass.getDeclaredField(toPropertyName);
 
         Type type = field.getGenericType();
@@ -227,7 +230,7 @@ public class DomainMapper {
             ParameterizedType pt = (ParameterizedType) type;
             Class typeForCollection = (Class) pt.getActualTypeArguments()[0];
 
-            Object object = eval(toPropertyType, fromFunction, finalFrom, hasFullAutoParent, to, toPropertyName);
+            Object object = eval(toPropertyType, fromFunction, finalFrom, beenMappedWithOrika, to, toPropertyName);
 
             List fromList = null;
 
@@ -323,16 +326,24 @@ public class DomainMapper {
 
     @SuppressWarnings("unchecked")
 
-    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from, boolean hasFullAutoParent, Object to, String toPropertyName) throws Exception {
+    private <From> Object eval(Class toPropertyClass, Function fromExpression, From from, boolean beenMappedWithOrika, Object to, String toPropertyName) throws Exception {
         Object rhs = safelyEvaluateClosure(fromExpression, from);
 
-        if (rhs != null && mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) {
+        if (rhs != null) {
+            if (mappingService.hasMappingForClass(toPropertyClass) && !isAlreadyProvided(toPropertyClass, rhs)) {
 
-            Object toProperty = PropertyUtils.getProperty(to, toPropertyName);
+                Object toProperty = PropertyUtils.getProperty(to, toPropertyName);
 
-            return doMapping(toPropertyClass, rhs, EMPTY, defaultEmbeddedMapping, hasFullAutoParent, toProperty);
+                return doMapping(toPropertyClass, rhs, EMPTY, defaultEmbeddedMapping, beenMappedWithOrika, toProperty);
+            } else if (rhs instanceof CustomMappingWrapper) {
+                Object toProperty = PropertyUtils.getProperty(to, toPropertyName);
+
+                return doMapping(toPropertyClass, rhs, EMPTY, defaultEmbeddedMapping, beenMappedWithOrika, toProperty);
+
+            }
         }
-        else return rhs;
+
+        return rhs;
     }
 
     @SuppressWarnings("unchecked")
