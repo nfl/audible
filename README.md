@@ -9,18 +9,53 @@ Audible is a mapper library that converts a POJO to another POJO using Java 8 la
 
 There are other POJO mapping libraries out there such as [Dozer](http://dozer.sourceforge.net/), [Orika](https://github.com/orika-mapper/orika), and [Apache BeanUtils](http://commons.apache.org/proper/commons-beanutils/). One of the assumptions that these libraries assume is that the source domain contains all necessary information to convert to the target domain. If you need to call external services such as retrieving additional information from a database during the conversion process, you would instead have to aggregate it into the source domain before you can use the mapper library. Audible provides the ability to have complete control including calling additional service methods during the conversion. You can also define multiple case-specific mappings for a single type. You can also define mappings for different source domains to one target domain. Audible combines the flexibility of manual conversions with some of the convenience of other mapping libraries.
 
-|       | Audible   | Dozer   | BeanUtils   |
-|-------|:---------:|:-------:|:-----------:|
-|Java 8 Required | 	✓	| 		| 		|
-|Spring Requred 	|	✓	|		|		|
-|Type Safe Mapping |✓	|		|	✓	|
-|Built-in Concurrent Processing|	✓	|		|		|
-|Call Other Service Within Mapping|	✓	|		|		|
-|Automatic Mapping of Embedded Objects|	✓	|	✓	|	✓	|
-|Multiple Mapping Versions|	✓	|		|		|
-|Multiple Source Type Support|✓	|		|		|
-|Post Processor|	✓	|		|		|
+|       | Audible   | Dozer   | BeanUtils   | Orika   |
+|-------|:---------:|:-------:|:-----------:|:-------:|
+|Doesn't Require Java 8 | 		| 	✓	| 	✓	|  ✓ |
+|Doesn't Require Spring |		|	✓	|	✓	|  ✓ |
+|Type Safe Mapping |✓	|		|	✓	|   ✓ |
+|Built-in Concurrent Processing|	✓	|		|		|   |
+|Call Other Service Within Mapping|	✓	|		|		|   ✓ |
+|Automatic Mapping of Embedded Objects|	✓	|	✓	|	✓	|   ✓ |
+|Independently Define Custom Mapping of Nested Objects| 	✓	| 		| 		|   |
+|Multiple Mapping Versions|	✓	|		|		|    |
+|Multiple Source Type Support|✓	|		|		|   ✓ |
+|Post Processor|	✓	|		|		|   |
 
+###When to use Audible
+Audible is best used when there is a need for complex hierarchy of custom conversions.
+Other libraries also support custom mappers and converters, but it is not intuitive to reuse them inside other converters and mappers
+###Example
+```java
+public FromCourse {
+    String title;
+    List<FromStudent> students;
+}
+```
+```java
+public FromStudent {
+    String firstName;
+    String lastName;
+}
+```
+```java
+public ToCourse {
+    String name;
+    List<ToStudent> registrants;
+}
+```
+```java
+public ToStudent {
+    String fullName;
+}
+```
+In the above example, it's obvious that we want to convert `FromCourse` to `ToCourse` and from `FromStudent` to `ToStudent`.
+Audible allows to configure the two custom mappers independently while keeping any logic out of converting child in the parent mapper. 
+Audible is also capable of handling nested conversions automatically. 
+What this means is that if you have an Object for which you are defining a converter (e.g. Course) 
+and it contains an Object for which you have already defined a converter (e.g. Student), 
+there's no need to explicitly call the second converter (the one for Student) inside your Course converter, 
+Audible will this is for you automatically as seen [here in this example for courses and address](#to-student-mapping).
 
 ##Configuration
 
@@ -153,7 +188,7 @@ If the `mappingType` parameter is not present it will default to a value of `Map
 
 
 ##Simple Mapping Example
-###ToStudentMapping.java
+###<a name="to-student-mapping"></a>ToStudentMapping.java
 
 ```java
 @Component
