@@ -22,7 +22,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 group = 'com.nfl.dm.util'
-version = '0.1.8'
+version = '0.1.9'
 
 repositories {
     mavenLocal()
@@ -112,6 +112,14 @@ publishing {
                         }
                     }
                 }
+
+                //Bug in maven-publish plugin changes scope to runtime instead of compile
+                //https://discuss.gradle.org/t/maven-publish-plugin-generated-pom-making-dependency-scope-runtime/7494
+                asNode().dependencies.'*'.findAll() {
+                    it.scope.text() == 'runtime' && project.configurations.compile.allDependencies.find { dep ->
+                        dep.name == it.artifactId.text()
+                    }
+                }.each { it.scope*.value = 'compile'}
             }
         }
     }
