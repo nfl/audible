@@ -1,13 +1,28 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.1'
+    }
+}
+
 apply plugin: 'java'
 apply plugin: 'maven'
+apply plugin: 'maven-publish'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'com.jfrog.bintray'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 group = 'com.nfl.dm.util'
-version = '0.1.8-SNAPSHOT'
+version = '0.1.8'
 
 repositories {
     mavenLocal()
@@ -54,5 +69,105 @@ uploadArchives {
                 authentication(userName: mavenUser, password: mavenPassword)
             }
         }
+    }
+}
+
+publishing {
+    publications {
+        audible(MavenPublication) {
+            from components.java
+            groupId project.group
+            artifactId project.name
+            version version
+
+            artifact sourcesJar {
+                classifier "sources"
+            }
+            artifact javadocJar {
+                classifier "javadoc"
+            }
+
+            pom.withXml {
+                asNode().children().last() + {
+                    resolveStrategy = Closure.DELEGATE_FIRST
+                    name project.name
+                    description project.description
+                    url 'https://github.com/nfl/audible'
+                    scm {
+                        url 'https://github.com/nfl/audible'
+                        connection 'https://github.com/nfl/audible'
+                        developerConnection 'https://github.com/nfl/audible'
+                    }
+                    licenses {
+                        license {
+                            name 'MIT'
+                            url 'https://github.com/nfl/audible/blob/master/LICENSE'
+                            distribution 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id 'chikim79'
+                            name 'Chi Kim'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER') ?: project.findProperty('bintray.user')
+    key = System.getenv('BINTRAY_KEY') ?: project.findProperty('bintray.key')
+    publications = ['audible']
+    publish = true
+    pkg {
+        repo = 'maven'
+        name = 'audible'
+        userOrg = 'nfl'
+        licenses = ['MIT']
+        vcsUrl = 'https://github.com/nfl/audible'
+        version {
+            name = project.version
+            desc = project.description
+            released  = new Date()
+            vcsTag = 'v'+ project.version
+            gpg {
+                sign = true
+            }
+            mavenCentralSync {
+                user = System.getenv('SONATYPE_USERNAME') ?: project.findProperty('sonatype.username')
+                password = System.getenv('SONATYPE_PASSWORD') ?: project.findProperty('sonatype.password')
+            }
+        }
+    }
+}
+
+// all publish tasks depend on the build task
+tasks.withType(PublishToMavenRepository) {
+    dependsOn build
+}
+
+
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+jar {
+    from "LICENSE"
+    manifest {
+        attributes(
+                "Specification-Title": project.name,
+                "Specification-Version": project.version,
+                "Implementation-Version": project.version,
+        )
     }
 }
