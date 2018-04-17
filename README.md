@@ -1,14 +1,15 @@
-#Audible
+# Audible
 
-##Latest Build
+## Latest Build
+
 Latest build is available in bintray
 https://bintray.com/nfl/maven/audible
 
-##Introduction
+## Introduction
 
 Audible is a mapper library that converts a POJO to another POJO using Java 8 lambdas to implement the mapping logic. It depends on Java 8 and Spring and uses [Orika](https://github.com/orika-mapper/orika) to support default mapping. 
 
-###Why Another Mapper?
+### Why Another Mapper?
 
 There are other POJO mapping libraries out there such as [Dozer](http://dozer.sourceforge.net/), [Orika](https://github.com/orika-mapper/orika), and [Apache BeanUtils](http://commons.apache.org/proper/commons-beanutils/). One of the assumptions that these libraries assume is that the source domain contains all necessary information to convert to the target domain. If you need to call external services such as retrieving additional information from a database during the conversion process, you would instead have to aggregate it into the source domain before you can use the mapper library. Audible provides the ability to have complete control including calling additional service methods during the conversion. You can also define multiple case-specific mappings for a single type. You can also define mappings for different source domains to one target domain. Audible combines the flexibility of manual conversions with some of the convenience of other mapping libraries.
 
@@ -25,10 +26,10 @@ There are other POJO mapping libraries out there such as [Dozer](http://dozer.so
 |Multiple Source Type Support|✓	|		|		|   ✓ |
 |Post Processor|	✓	|		|		|   |
 
-###When to use Audible
+### When to use Audible
 Audible is best used when there is a need for complex hierarchy of custom conversions.
 Other libraries also support custom mappers and converters, but it is not intuitive to reuse them inside other converters and mappers
-###Example
+### Example
 ```java
 public FromCourse {
     String title;
@@ -60,11 +61,11 @@ and it contains an Object for which you have already defined a converter (e.g. S
 there's no need to explicitly call the second converter (the one for Student) inside your Course converter, 
 Audible will this is for you automatically as seen [here in this example for courses and address](#to-student-mapping).
 
-##Configuration
+## Configuration
 
 In order to configure this service first create a Spring configuration class like the one shown. All classes that are annotated with `@MappingTo` should be in your Spring context. In addition `MappingService` and `DomainMapper` should be defined as Spring Beans
 
-###<a name="config-example"></a>[Example] ApplicationConfig.java
+### <a name="config-example"></a>[Example] ApplicationConfig.java
 ```java
 import com.nfl.util.mapper.service.DomainMapper;
 import com.nfl.util.mapper.service.MappingService;
@@ -90,14 +91,14 @@ public class ApplicationConfig {
 ```
 
 
-##Annotations
+## Annotations
 There are three annotations that are used to denote a mapping of one class to another.
 
-###@MappingTo
+### @MappingTo
 
 The first is the `@MappingTo` annotation takes one parameter designating the class that it maps to. It is used on the declaration of the mapping class. This class should contain all of the methods mapping from objects of other classes to an object of the designated class.
 
-###@Mapping
+### @Mapping
 
 The second annotation is the `@Mapping` annotation. It is used on the individual methods within the mapping class that differ based on the parameters supplied to the annotation. The parameters this annotation takes are `type`, `name`, `originalClass`, and `parallelCollections`.
 
@@ -131,7 +132,7 @@ public class ToStudentMapping {
 }
 ```
 
-###@PostProcessor
+### @PostProcessor
 
 The third annotation is the `@PostProcessor` annotation. This annotation is used when you want to execute some function following the mapping of one object to another. It is used inside of the class annotated with `@MappingTo`. 
 
@@ -160,9 +161,9 @@ public class ToStudentMapping {
 }
 ```
 
-##DomainMapper
+## DomainMapper
 
-###Builder
+### Builder
 You should use the provided DomainMapperBuilder class to create and a configure your DomainMapper. An example usage of the builder (as seen in the [example](#config-example)) is as follows: 
 
 ```java
@@ -179,7 +180,7 @@ The three methods in the builder class that you need to be concerned with are:
 * `setParallelProcessEmbeddedList(boolean parallelProcessEmbeddedList)`: a value of `true` indicates that when mapping embedded lists, it will do so concurrently instead of sequentially (Default value: `false`)
 
 
-###DomainMapper.map Function
+### DomainMapper.map Function
 In order to perform the mapping from one object to another an instance of the `DomainMapper` class is used. The primary method used in mapping an object is `DomainMapper.map` which takes between two and four arguments. The method signatures are as follows:
 
 * `public <From, To> To map(Class<To> toClass, From from)`
@@ -190,8 +191,8 @@ In order to perform the mapping from one object to another an instance of the `D
 If the `mappingType` parameter is not present it will default to a value of `MappingType.NORMAL`, if the `mappingName` parameter is not present it will default to the empty string `""`.
 
 
-##Simple Mapping Example
-###<a name="to-student-mapping"></a>ToStudentMapping.java
+## Simple Mapping Example
+### <a name="to-student-mapping"></a>ToStudentMapping.java
 
 ```java
 @Component
@@ -226,7 +227,7 @@ public class ToStudentMapping {
 }
 ```
 
-###ToCourseMapping.java
+### ToCourseMapping.java
 ```java
 @Component
 @MappingTo(ToCourse.class)
@@ -256,7 +257,7 @@ public class ToCourseMapping {
 }
 ```
 
-###ToAddressMapping.java
+### ToAddressMapping.java
 
 ```java
 @Component
@@ -279,7 +280,7 @@ public class ToAddressMapping {
 
 ```
 
-###FromStudent.java
+### FromStudent.java
 
 ```java
 public class FromStudent {
@@ -294,7 +295,7 @@ public class FromStudent {
 }
 ```
 
-####FromCourse.java
+### FromCourse.java
 
 ```java
 public class FromCourse {
@@ -307,7 +308,7 @@ public class FromCourse {
 }
 ```
 
-###FromAddress.java
+### FromAddress.java
 
 ```java
 public class FromAddress {
@@ -320,7 +321,7 @@ public class FromAddress {
 }
 ```
 
-###ToStudent.java
+### ToStudent.java
 
 ```java
 public class ToStudent {
@@ -339,7 +340,7 @@ public class ToStudent {
 }
 ```
 
-###ToCourse.java
+### ToCourse.java
 
 ```java
 public class ToCourse {
@@ -354,7 +355,7 @@ public class ToCourse {
 }
 ```
 
-###ToAddress.java
+### ToAddress.java
 
 ```java
 public class ToAddress {
@@ -369,7 +370,7 @@ public class ToAddress {
 }
 ```
 
-###Driver.java
+### Driver.java
 ```java
 public class Driver {
 
@@ -386,11 +387,11 @@ public class Driver {
 	}
 }
 ```
-#Advanced
+# Advanced
 
-##Embedded Mapping
+## Embedded Mapping
 
-###ToAddressMapping.java
+### ToAddressMapping.java
 
 ```java
 @Component
@@ -453,8 +454,8 @@ public class Main {
 ```
 
 
-##Named Mapping Example
-###ToStudentMapping.java
+## Named Mapping Example
+### ToStudentMapping.java
 ```java
 @Component
 @MappingTo(ToStudent.class)
@@ -478,7 +479,7 @@ public class ToStudentMapping {
 }
 ```
 
-###Main.java
+### Main.java
 ```java
 public class Main {
 
@@ -498,7 +499,7 @@ public class Main {
 }
 ```
 
-##Multiple Source Types
+## Multiple Source Types
 
 ```
 public class FromAnotherAddress {
@@ -543,7 +544,7 @@ public class ToAddressMapping {
 
 ```
 
-###Main.java
+### Main.java
 ```
 public class Main {
 
@@ -569,7 +570,7 @@ public class Main {
 }
 ```
 
-##Overriding MappingType
+## Overriding MappingType
 ```java
 @Component
 @MappingTo(ToStudent.class)
@@ -627,7 +628,7 @@ public class ToAddressMapping {
 
 ```
 
-###Main.java
+### Main.java
 ```
 public class Main {
 
@@ -655,6 +656,6 @@ public class Main {
 }
 ```
 
-##License
+## License
 
 MIT
