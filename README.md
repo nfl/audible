@@ -1,5 +1,8 @@
 #Audible
 
+##Latest Build
+Latest build is available in bintray
+https://bintray.com/nfl/maven/audible
 
 ##Introduction
 
